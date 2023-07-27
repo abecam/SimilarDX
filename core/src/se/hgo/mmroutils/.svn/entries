@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wc-entries
+   xmlns="svn:">
+<entry
+   committed-rev="78"
+   name=""
+   committed-date="2005-10-21T11:43:46.602315Z"
+   url="http://dd.ostabil.nu:8181/iperg/mainserver/mmroutils"
+   last-author="joakim.olsson"
+   kind="dir"
+   uuid="7e16fe22-4f06-694b-b60f-00c2242e551c"
+   revision="80"/>
+<entry
+   committed-rev="62"
+   name="ToGetResults.java"
+   text-time="2005-10-11T14:20:34.335188Z"
+   committed-date="2005-10-11T14:33:59.671302Z"
+   checksum="88a4aaa84fd48212b222fda9f13cc854"
+   last-author="alain"
+   kind="file"
+   prop-time="2005-09-05T14:29:42.735102Z"/>
+<entry
+   committed-rev="62"
+   name="Comm2String.java"
+   text-time="2005-10-11T14:20:29.237859Z"
+   committed-date="2005-10-11T14:33:59.671302Z"
+   checksum="21e0667858e28c25a4342dd8f23d46bc"
+   last-author="alain"
+   kind="file"
+   prop-time="2005-09-05T14:29:42.745116Z"/>
+<entry
+   committed-rev="62"
+   name="TConsole.java"
+   text-time="2005-10-11T14:19:51.693873Z"
+   committed-date="2005-10-11T14:33:59.671302Z"
+   checksum="1867caf3e6549132e0e35b65d715483f"
+   last-author="alain"
+   kind="file"
+   prop-time="2005-09-05T14:29:42.755131Z"/>
+<entry
+   committed-rev="62"
+   name="ITickable.java"
+   text-time="2005-10-11T14:20:21.436641Z"
+   committed-date="2005-10-11T14:33:59.671302Z"
+   checksum="96b3258f0170ccabfa87cd6ceb826acc"
+   last-author="alain"
+   kind="file"
+   prop-time="2005-09-05T14:29:42.765145Z"/>
+<entry
+   committed-rev="62"
+   name="Lock.java"
+   text-time="2005-10-11T14:20:08.367849Z"
+   committed-date="2005-10-11T14:33:59.671302Z"
+   checksum="666864d20244977e3d71850741e3d617"
+   last-author="alain"
+   kind="file"
+   prop-time="2005-09-10T11:53:19.384201Z"/>
+<entry
+   committed-rev="62"
+   name="ManageMachineList.java"
+   text-time="2005-10-11T14:19:57.572326Z"
+   committed-date="2005-10-11T14:33:59.671302Z"
+   checksum="d7d02fade723f48967ca5d0d87a8f64d"
+   last-author="alain"
+   kind="file"
+   prop-time="2005-09-05T14:29:42.765145Z"/>
+<entry
+   committed-rev="62"
+   name="Tick.java"
+   text-time="2005-10-11T14:19:38.274577Z"
+   committed-date="2005-10-11T14:33:59.671302Z"
+   checksum="b4a4ebb519ebc0680e7dde5355696255"
+   last-author="alain"
+   kind="file"
+   prop-time="2005-09-05T14:29:42.775160Z"/>
+<entry
+   committed-rev="62"
+   name="ThreadQueue.java"
+   text-time="2005-10-11T14:19:45.284657Z"
+   committed-date="2005-10-11T14:33:59.671302Z"
+   checksum="0bc40f815ca674c9b6d9439d3cf78330"
+   last-author="alain"
+   kind="file"
+   prop-time="2005-09-05T14:29:42.785174Z"/>
+<entry
+   committed-rev="78"
+   name="LogManager.java"
+   text-time="2005-10-30T15:41:45.943022Z"
+   committed-date="2005-10-21T11:43:46.602315Z"
+   checksum="71567f57976969f4932262042baaa096"
+   last-author="joakim.olsson"
+   kind="file"
+   prop-time="2005-10-30T15:41:45.832864Z"/>
+<entry
+   committed-rev="78"
+   name="ClientTry.java"
+   text-time="2005-10-30T15:41:46.123281Z"
+   committed-date="2005-10-21T11:43:46.602315Z"
+   checksum="326895bd29883f542d9f387b652103f4"
+   last-author="joakim.olsson"
+   kind="file"
+   prop-time="2005-10-30T15:41:45.852892Z"/>
+</wc-entries>
