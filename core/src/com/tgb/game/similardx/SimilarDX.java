@@ -15,9 +15,13 @@ import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.tgb.game.similardx.Similar2DEmb.CoordXY;
@@ -160,6 +164,8 @@ public class SimilarDX extends ApplicationAdapter {
 	private File backFolder;
 
 	private File[] allBackgroundsFiles;
+	
+	Rectangle theLimits;
 
 	class CoordXY
 	{
@@ -356,7 +362,7 @@ public class SimilarDX extends ApplicationAdapter {
 		}
 		if (zoneSelected.size() >= 2)
 		{
-			Iterator i = zoneSelected.iterator();
+			Iterator<CoordXY> i = zoneSelected.iterator();
 
 			// Reset the flooding (the zone is known now)
 			// Now remove the zone! (no double click mechanisms...)
@@ -795,21 +801,19 @@ public class SimilarDX extends ApplicationAdapter {
 	/* (non-Javadoc)
 	 * @see java.awt.event.KeyListener#keyPressed(java.awt.event.KeyEvent)
 	 */
-	public void keyPressed(KeyEvent e)
+	public void keyPressed()
 	{
 		if (win)
 		{
 			//myLog.add2Log(3, "Key pressed: " + e.getKeyChar());
-			if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE)
+			if (true) // KeyEvent.VK_BACK_SPACE)
 			{
 				if (playerName.length() > 0)
 				{
 					playerName.deleteCharAt(playerName.length() - 1);
-					this.update(this.getGraphics());
-					e.consume();
 				}
 			}
-			if (e.getKeyCode() == KeyEvent.VK_ENTER)
+			if (true) // KeyEvent.VK_ENTER)
 			{
 				// Append
 				if (playerName.length() == 0)
@@ -822,12 +826,11 @@ public class SimilarDX extends ApplicationAdapter {
 				score = 0;
 				setGrid();
 				win = false;
-				this.update(this.getGraphics());
 			}
 		}
 		else
 		{
-			if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE)
+			if (true) // KeyEvent.VK_BACK_SPACE)
 			{
 				pullBoard();
 			}
@@ -837,31 +840,25 @@ public class SimilarDX extends ApplicationAdapter {
 	/* (non-Javadoc)
 	 * @see java.awt.event.KeyListener#keyTyped(java.awt.event.KeyEvent)
 	 */
-	public void keyTyped(KeyEvent e)
+	public void keyTyped()
 	{
 		if (win)
 		{
-			//myLog.add2Log(3, "Key typed: " + e.getKeyChar());
-			char input = e.getKeyChar();
-			if ((e.getKeyCode() != KeyEvent.VK_BACK_SPACE) && (e.getKeyCode() != KeyEvent.VK_ENTER) && (input != '\b'))
+			if (playerName.length() < 20)
 			{
-				if (playerName.length() < 20)
-				{
-					playerName.append(input);
-					this.update(this.getGraphics());
-				}
+				playerName.append("");
 			}
-			else
-				e.consume();
 		}
 	}
 	
-	Font ourInfosFont;
+	BitmapFont font;
+	ShaderProgram fontShader;
+	/*Font ourInfosFont;
 	Font scoresFont;
 	Font titleFont;
 	Font infosFont;
 	Font startingFont;
-
+	 */
 	int frameNb = 0;
 	int indAnim = 0; // Nb of frame for the small animation
 	int indNbAnim = 0; // Indice of current animation
@@ -871,8 +868,6 @@ public class SimilarDX extends ApplicationAdapter {
 	Image bAnimImage;
 
 	Image bSatImage;
-
-	Rectangle theLimits;
 
 	Color brickColors[];
 
@@ -910,18 +905,14 @@ public class SimilarDX extends ApplicationAdapter {
 
 			theLimits = this.getBounds();
 
-			ourInfosFont = null;
-			scoresFont = null;
-			titleFont = null;
-			infosFont = null;
-			startingFont = null;
-
+			/*
 			ourInfosFont = new Font("Arial", Font.PLAIN, theLimits.width / 40);
 			scoresFont = new Font("Arial", Font.PLAIN, theLimits.width / 19);
 			titleFont = new Font("Arial", Font.PLAIN, theLimits.width / 20);
 			infosFont = new Font("Arial", Font.PLAIN, theLimits.width / 50);
 			startingFont = new Font("Arial", Font.PLAIN, theLimits.width / 10);
-
+			 */
+			
 			Image myOffScreenImage = this.createImage(theLimits.width, theLimits.height);
 
 			Graphics tempGraphics2D = myOffScreenImage.getGraphics();
@@ -1053,6 +1044,10 @@ public class SimilarDX extends ApplicationAdapter {
 				tempGraphics2D.setFont(titleFont);
 				tempGraphics2D.setColor(scoreFG);
 				tempGraphics2D.drawString("   Score: " + score, theLimits.width / 4 + theLimits.width / 16, theLimits.height / 16);
+				
+				batch.setShader(fontShader);
+				font.draw(batch, "Hello smooth world!", 10, 10);
+				batch.setShader(null);
 			}
 
 			if (win)
@@ -1167,6 +1162,17 @@ public class SimilarDX extends ApplicationAdapter {
 		scoreBG = new Color(0.039f, 0.039f, 0.039f, 1f);
 		scoreFG = new Color(0.98f, 0.235f, 0.235f, 1f);
 
+		Texture textureFont = new Texture(Gdx.files.internal("ArialSimilar.png"));
+		textureFont.setFilter(TextureFilter.Linear, TextureFilter.Linear);
+		
+		font = new BitmapFont(Gdx.files.internal("ArialSimilar.fnt"), new TextureRegion(textureFont), false);
+
+		ShaderProgram fontShader = new ShaderProgram(Gdx.files.internal("font.vert"), Gdx.files.internal("font.frag"));
+		if (!fontShader.isCompiled()) {
+		    Gdx.app.error("fontShader", "compilation failed:\n" + fontShader.getLog());
+		}
+
+		
 		loading = false;
 		//this.update(this.getGraphics());
 	}
@@ -1232,19 +1238,6 @@ public class SimilarDX extends ApplicationAdapter {
 		endSnd = Gdx.audio.newSound(Gdx.files.internal("Sounds/endSnd.wav"));
 
 		loading = false;
-	}
-	
-	public void paintComponent(Graphics g) 
-	{
-		clear(g);
-		
-		postRender(g);
-	}
-	
-	// super.paintComponent clears off screen pixmap,
-	// since we're using double buffering by default.
-	protected void clear(Graphics g) {
-		super.paintComponent(g);
 	}
 	
 	@Override
