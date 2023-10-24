@@ -9,27 +9,37 @@ import java.util.Vector;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Input.Buttons;
+import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Pixmap.Format;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
-import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
+import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
-import com.tgb.game.similardx.Similar2DEmb.CoordXY;
-import com.tgb.game.similardx.Similar2DEmb.Zone;
+import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
 import se.hgo.mmroutils.LogManager;
+import space.earlygrey.shapedrawer.ShapeDrawer;
 
-public class SimilarDX extends ApplicationAdapter {
+public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 	SpriteBatch batch;
 	Texture img;
 	OrthographicCamera camera;
@@ -131,7 +141,6 @@ public class SimilarDX extends ApplicationAdapter {
 	//UpdateInfos myUpdater;
 
 	boolean endAsked = false;
-	boolean frameDrawn = false; // Lock the application (cannot exit) until the frame is painted
 
 	StringBuffer playerName = null;
 	int currentPosition = 0; // Position in score.
@@ -161,12 +170,16 @@ public class SimilarDX extends ApplicationAdapter {
 
 	CoordXY blocSelected;
 
-	private File backFolder;
+	private FileHandle backFolder;
 
-	private File[] allBackgroundsFiles;
+	private FileHandle[] allBackgroundsFiles;
+
+	private TextureAtlas atlasBitmapBlock;
 	
-	Rectangle theLimits;
-
+	private ShapeDrawer shapeDrawer;
+	
+	GlyphLayout glyphLayout;
+	
 	class CoordXY
 	{
 		int x, y;
@@ -513,7 +526,7 @@ public class SimilarDX extends ApplicationAdapter {
 		return output;
 	}
 
-	public void InitAll()
+	public SimilarDX()
 	{
 		myLog = new se.hgo.mmroutils.LogManager();
 		//myLog = new mmroutils.LogManager();
@@ -525,11 +538,11 @@ public class SimilarDX extends ApplicationAdapter {
 		myLog.add2Log(1, "");
 		myLog.add2Log(1, "------------------------------------------");
 
-		backFolder = new File("Gfx/Backgrounds/");
+		backFolder = new FileHandle("Gfx/Backgrounds/");
 
 		if (backFolder.isDirectory())
 		{
-			allBackgroundsFiles = backFolder.listFiles();
+			allBackgroundsFiles = backFolder.list();
 		}
 		else
 		{
@@ -552,17 +565,6 @@ public class SimilarDX extends ApplicationAdapter {
 		stackOfCoords.ensureCapacity(160 * 120);
 		//System.out.println(stackOfCoords.capacity());
 		// Initialize the GUI components
-
-		camera = new OrthographicCamera();
-		camera.setToOrtho(false, 1280, 720);
-
-		//used=true;
-
-		myLog.add2Log(1, "Initialised");
-
-		initGraphics();		
-		
-		initSounds();
 		
 		return;
 	}
@@ -580,7 +582,7 @@ public class SimilarDX extends ApplicationAdapter {
 		{
 			for (int y = 0; y < nbBlocY; y++)
 			{
-				tabOfBlocs[x][y] = myRandomGen.nextInt(nbColors);
+				tabOfBlocs[x][y] = myRandomGen.nextInt(nbColors)+1;
 			}
 		}
 	}
@@ -620,14 +622,17 @@ public class SimilarDX extends ApplicationAdapter {
 		posUndo = 0;
 	}
 
-	public void leftMouseClicked(Vector3 onPos)
+	@Override public boolean touchDown (int screenX, int screenY, int pointer, int button) 
 	{
+		// ignore if its not left mouse button or first touch pointer
+		if (button != Input.Buttons.LEFT || pointer > 0) return false;
+		
 		if (!inMenu && !win)
 		{
-			float stepBlocX = theLimits.width / nbBlocX;
-			float stepBlocY = theLimits.height / nbBlocY;
-			blocSelected.setX((int )(onPos.x / stepBlocX));
-			blocSelected.setY((int )(onPos.y / stepBlocY));
+			float stepBlocX = Gdx.graphics.getWidth() / nbBlocX;
+			float stepBlocY = Gdx.graphics.getHeight() / nbBlocY;
+			blocSelected.setX((int )(((float )screenX) / stepBlocX));
+			blocSelected.setY((int )(((float )screenY) / stepBlocY));
 			//if (firstTimeInClick)
 			// First a simple selection, but don't accept a 1 bloc zone
 			//myLog.add2Log("One block selected in " + blocSelected.getX() + " : " + blocSelected.getY());
@@ -688,38 +693,38 @@ public class SimilarDX extends ApplicationAdapter {
 			if (!win)
 			{
 				// Menu!
-				double widthD = (double) theLimits.width;
-				double heightD = (double) theLimits.height;
+				double widthD = (double) Gdx.graphics.getWidth();
+				double heightD = (double) Gdx.graphics.getHeight();
 
-				if ((onPos.x >= (int) (VERYSMALLLEFT * widthD)) && (onPos.y >= (int) (SIZEUP * heightD)) && (onPos.x <= (int) (VERYSMALLRIGHT * widthD)) && (onPos.y <= (int) (SIZEDOWN * heightD)))
+				if ((screenX >= (int) (VERYSMALLLEFT * widthD)) && (screenY >= (int) (SIZEUP * heightD)) && (screenX <= (int) (VERYSMALLRIGHT * widthD)) && (screenY <= (int) (SIZEDOWN * heightD)))
 				{
 					sizeGrid = 0;
 					nbBlocX = 20;
 					nbBlocY = 15;
 					setGrid();
 				}
-				if ((onPos.x >= (int) (SMALLLEFT * widthD)) && (onPos.y >= (int) (SIZEUP * heightD)) && (onPos.x <= (int) (SMALLRIGHT * widthD)) && (onPos.y <= (int) (SIZEDOWN * heightD)))
+				if ((screenX >= (int) (SMALLLEFT * widthD)) && (screenY >= (int) (SIZEUP * heightD)) && (screenX <= (int) (SMALLRIGHT * widthD)) && (screenY <= (int) (SIZEDOWN * heightD)))
 				{
 					sizeGrid = 1;
 					nbBlocX = 32;
 					nbBlocY = 24;
 					setGrid();
 				}
-				if ((onPos.x >= (int) (MEDIUMLEFT * widthD)) && (onPos.y >= (int) (SIZEUP * heightD)) && (onPos.x <= (int) (MEDIUMRIGHT * widthD)) && (onPos.y <= (int) (SIZEDOWN * heightD)))
+				if ((screenX >= (int) (MEDIUMLEFT * widthD)) && (screenY >= (int) (SIZEUP * heightD)) && (screenX <= (int) (MEDIUMRIGHT * widthD)) && (screenY <= (int) (SIZEDOWN * heightD)))
 				{
 					sizeGrid = 2;
 					nbBlocX = 40;
 					nbBlocY = 30;
 					setGrid();
 				}
-				if ((onPos.x >= (int) (BIGLEFT * widthD)) && (onPos.y >= (int) (SIZEUP * heightD)) && (onPos.x <= (int) (BIGRIGHT * widthD)) && (onPos.y <= (int) (SIZEDOWN * heightD)))
+				if ((screenX >= (int) (BIGLEFT * widthD)) && (screenY >= (int) (SIZEUP * heightD)) && (screenX <= (int) (BIGRIGHT * widthD)) && (screenY <= (int) (SIZEDOWN * heightD)))
 				{
 					sizeGrid = 3;
 					nbBlocX = 80;
 					nbBlocY = 60;
 					setGrid();
 				}
-				if ((onPos.x >= (int) (VERYBIGLEFT * widthD)) && (onPos.y >= (int) (SIZEUP * heightD)) && (onPos.x <= (int) (VERYBIGRIGHT * widthD)) && (onPos.y <= (int) (SIZEDOWN * heightD)))
+				if ((screenX >= (int) (VERYBIGLEFT * widthD)) && (screenY >= (int) (SIZEUP * heightD)) && (screenX <= (int) (VERYBIGRIGHT * widthD)) && (screenY <= (int) (SIZEDOWN * heightD)))
 				{
 					sizeGrid = 4;
 					nbBlocX = 160;
@@ -727,56 +732,56 @@ public class SimilarDX extends ApplicationAdapter {
 					setGrid();
 				}
 
-				if ((onPos.x >= (int) (TWOLEFT * widthD)) && (onPos.y >= (int) (COLORSUP * heightD)) && (onPos.x <= (int) (TWORIGHT * widthD)) && (onPos.y <= (int) (COLORSDOWN * heightD)))
+				if ((screenX >= (int) (TWOLEFT * widthD)) && (screenY >= (int) (COLORSUP * heightD)) && (screenX <= (int) (TWORIGHT * widthD)) && (screenY <= (int) (COLORSDOWN * heightD)))
 				{
 					nbColors = 2;
 					setGrid();
 				}
 
-				if ((onPos.x >= (int) (THREELEFT * widthD)) && (onPos.y >= (int) (COLORSUP * heightD)) && (onPos.x <= (int) (THREERIGHT * widthD)) && (onPos.y <= (int) (COLORSDOWN * heightD)))
+				if ((screenX >= (int) (THREELEFT * widthD)) && (screenY >= (int) (COLORSUP * heightD)) && (screenX <= (int) (THREERIGHT * widthD)) && (screenY <= (int) (COLORSDOWN * heightD)))
 				{
 					nbColors = 3;
 					setGrid();
 				}
 
-				if ((onPos.x >= (int) (FOURLEFT * widthD)) && (onPos.y >= (int) (COLORSUP * heightD)) && (onPos.x <= (int) (FOURRIGHT * widthD)) && (onPos.y <= (int) (COLORSDOWN * heightD)))
+				if ((screenX >= (int) (FOURLEFT * widthD)) && (screenY >= (int) (COLORSUP * heightD)) && (screenX <= (int) (FOURRIGHT * widthD)) && (screenY <= (int) (COLORSDOWN * heightD)))
 				{
 					nbColors = 4;
 					setGrid();
 				}
 
-				if ((onPos.x >= (int) (FIVELEFT * widthD)) && (onPos.y >= (int) (COLORSUP * heightD)) && (onPos.x <= (int) (FIVERIGHT * widthD)) && (onPos.y <= (int) (COLORSDOWN * heightD)))
+				if ((screenX >= (int) (FIVELEFT * widthD)) && (screenY >= (int) (COLORSUP * heightD)) && (screenX <= (int) (FIVERIGHT * widthD)) && (screenY <= (int) (COLORSDOWN * heightD)))
 				{
 					nbColors = 5;
 					setGrid();
 				}
 
-				if ((onPos.x >= (int) (SIXLEFT * widthD)) && (onPos.y >= (int) (COLORSUP * heightD)) && (onPos.x <= (int) (SIXRIGHT * widthD)) && (onPos.y <= (int) (COLORSDOWN * heightD)))
+				if ((screenX >= (int) (SIXLEFT * widthD)) && (screenY >= (int) (COLORSUP * heightD)) && (screenX <= (int) (SIXRIGHT * widthD)) && (screenY <= (int) (COLORSDOWN * heightD)))
 				{
 					nbColors = 6;
 					setGrid();
 				}
 
-				if ((onPos.x >= (int) (SEVENLEFT * widthD)) && (onPos.y >= (int) (COLORSUP * heightD)) && (onPos.x <= (int) (SEVENRIGHT * widthD)) && (onPos.y <= (int) (COLORSDOWN * heightD)))
+				if ((screenX >= (int) (SEVENLEFT * widthD)) && (screenY >= (int) (COLORSUP * heightD)) && (screenX <= (int) (SEVENRIGHT * widthD)) && (screenY <= (int) (COLORSDOWN * heightD)))
 				{
 					nbColors = 7;
 					setGrid();
 				}
 
-				if ((onPos.x >= (int) (EIGHTLEFT * widthD)) && (onPos.y >= (int) (COLORSUP * heightD)) && (onPos.x <= (int) (EIGHTRIGHT * widthD)) && (onPos.y <= (int) (COLORSDOWN * heightD)))
+				if ((screenX >= (int) (EIGHTLEFT * widthD)) && (screenY >= (int) (COLORSUP * heightD)) && (screenX <= (int) (EIGHTRIGHT * widthD)) && (screenY <= (int) (COLORSDOWN * heightD)))
 				{
 					nbColors = 8;
 					setGrid();
 				}
 
-				if ((onPos.x >= (int) (NSEEDLEFT * widthD)) && (onPos.y >= (int) (NSEEDUP * heightD)) && (onPos.x <= (int) (NSEEDRIGHT * widthD)) && (onPos.y <= (int) (NSEEDDOWN * heightD)))
+				if ((screenX >= (int) (NSEEDLEFT * widthD)) && (screenY >= (int) (NSEEDUP * heightD)) && (screenX <= (int) (NSEEDRIGHT * widthD)) && (screenY <= (int) (NSEEDDOWN * heightD)))
 				{
 					newSeed = true;
 					setGrid();
 					newSeed = false;
 				}
 
-				if ((onPos.x >= (int) (PLAYLEFT * widthD)) && (onPos.y >= (int) (PLAYUP * heightD)) && (onPos.x <= (int) (PLAYRIGHT * widthD)) && (onPos.y <= (int) (PLAYDOWN * heightD)))
+				if ((screenX >= (int) (PLAYLEFT * widthD)) && (screenY >= (int) (PLAYUP * heightD)) && (screenX <= (int) (PLAYRIGHT * widthD)) && (screenY <= (int) (PLAYDOWN * heightD)))
 				{
 					pickImageBackground();
 					inMenu = false;
@@ -785,12 +790,13 @@ public class SimilarDX extends ApplicationAdapter {
 			else
 			{
 				// In win (game over) mode
-				/*inMenu=true;
-					 score=0;
-					 setGrid();
-					 win=false;*/
+//				inMenu=true;
+//				score=0;
+//				setGrid();
+//				win=false;
 			}
 		}
+		return true;
 	}
 	
 	public void rightMouseClicked()
@@ -863,13 +869,15 @@ public class SimilarDX extends ApplicationAdapter {
 	int indAnim = 0; // Nb of frame for the small animation
 	int indNbAnim = 0; // Indice of current animation
 
-	Image bFlagImage;
+	Texture bFlagImage;
 
-	Image bAnimImage;
+	Texture bAnimImage;
 
-	Image bSatImage;
+	Texture bSatImage;
 
 	Color brickColors[];
+	private Sprite[] spriteBlock = new Sprite[10];
+	private Stage stage;
 
 	public String getMyFormattedTime(long timeToFormat)
 	{
@@ -892,210 +900,220 @@ public class SimilarDX extends ApplicationAdapter {
 		return output;
 	}
 
-	/* (non-Javadoc)
-	 * @see javax.media.j3d.Canvas3D#postRender()
-	 */
-	public void postRender(Graphics g)
-	{
-		if (!this.getBounds().isEmpty())
-		{
-			clear(g);
-			
-			frameDrawn = false;
+	public void postRender() {
+		/*
+		 * ourInfosFont = new Font("Arial", Font.PLAIN, Gdx.graphics.getWidth() / 40);
+		 * scoresFont = new Font("Arial", Font.PLAIN, Gdx.graphics.getWidth() / 19);
+		 * titleFont = new Font("Arial", Font.PLAIN, Gdx.graphics.getWidth() / 20);
+		 * infosFont = new Font("Arial", Font.PLAIN, Gdx.graphics.getWidth() / 50);
+		 * startingFont = new Font("Arial", Font.PLAIN, Gdx.graphics.getWidth() / 10);
+		 */
 
-			theLimits = this.getBounds();
+		batch.draw(bSatImage, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
-			/*
-			ourInfosFont = new Font("Arial", Font.PLAIN, theLimits.width / 40);
-			scoresFont = new Font("Arial", Font.PLAIN, theLimits.width / 19);
-			titleFont = new Font("Arial", Font.PLAIN, theLimits.width / 20);
-			infosFont = new Font("Arial", Font.PLAIN, theLimits.width / 50);
-			startingFont = new Font("Arial", Font.PLAIN, theLimits.width / 10);
-			 */
-			
-			Image myOffScreenImage = this.createImage(theLimits.width, theLimits.height);
+		int stepBlocX = Gdx.graphics.getWidth() / nbBlocX;
+		int stepBlocY = Gdx.graphics.getHeight() / nbBlocY;
+		int xBloc = 0;
+		int yBloc = 0;
 
-			Graphics tempGraphics2D = myOffScreenImage.getGraphics();
-
-			tempGraphics2D.setColor(greyColor);
-
-			if (bSatImage != null) // Draw the flag if it exists, but do not crash elsewhere.
-				tempGraphics2D.drawImage(bSatImage, 0, 0, theLimits.width, theLimits.height, Similar2DEmb.this.getParent());
-
-			int stepBlocX = theLimits.width / nbBlocX;
-			int stepBlocY = theLimits.height / nbBlocY;
-			int xBloc = 0;
-			int yBloc = 0;
-
-			for (int x = 0; x < nbBlocX; x++)
-			{
-				for (int y = 0; y < nbBlocY; y++)
-				{
-					if (tabOfBlocs[x][y] != voidBloc)
-					{
-						if ((bAnimImage != null) && (bAnimImage.getHeight(this) > 0))
-							tempGraphics2D.drawImage(bAnimImage, xBloc, yBloc, xBloc + stepBlocX, yBloc + stepBlocY, tabOfBlocs[x][y] * 32, 0, 31 + tabOfBlocs[x][y] * 32, 31, Similar2DEmb.this.getParent());
-						else
-						{
-							tempGraphics2D.setColor(brickColors[tabOfBlocs[x][y]]);
-							tempGraphics2D.fillRect(xBloc, yBloc, stepBlocX, stepBlocY);
-						}
+		for (int x = 0; x < nbBlocX; x++) {
+			for (int y = 0; y < nbBlocY; y++) {
+				if (tabOfBlocs[x][y] != voidBloc) {
+					if (bAnimImage != null)
+						batch.draw(spriteBlock[tabOfBlocs[x][y]], xBloc, yBloc, stepBlocX, stepBlocY);
+					else {
+						shapeDrawer.filledRectangle(xBloc, yBloc, stepBlocX, stepBlocY, brickColors[tabOfBlocs[x][y]]);
 					}
-					yBloc += stepBlocY;
 				}
-				yBloc = 0;
-				xBloc += stepBlocX;
+				yBloc += stepBlocY;
 			}
-
-			Iterator i = zoneSelected.iterator();
-			tempGraphics2D.setColor(Color.black);
-
-			while (i.hasNext())
-			{
-				CoordXY currentCoord = (CoordXY) i.next();
-				tempGraphics2D.drawRect(currentCoord.getX() * stepBlocX, currentCoord.getY() * stepBlocY, stepBlocX, stepBlocY);
-			}
-
-			if (inMenu)
-			{
-				tempGraphics2D.setColor(greyTans);
-
-				tempGraphics2D.fillRect(0, 0, theLimits.width, theLimits.height);
-
-				tempGraphics2D.setColor(brickColors[sizeGrid]);
-
-				double widthD = (double) theLimits.width;
-				double heightD = (double) theLimits.height;
-
-				switch (sizeGrid)
-				{
-					case 0:
-						tempGraphics2D.fillRect((int) (VERYSMALLLEFT * widthD), (int) (SIZEUP * heightD), (int) ((VERYSMALLRIGHT - VERYSMALLLEFT) * widthD), (int) ((SIZEDOWN - SIZEUP) * heightD));
-					break;
-
-					case 1:
-						tempGraphics2D.fillRect((int) (SMALLLEFT * widthD), (int) (SIZEUP * heightD), (int) ((SMALLRIGHT - SMALLLEFT) * theLimits.width), (int) ((SIZEDOWN - SIZEUP) * heightD));
-					break;
-
-					case 2:
-						tempGraphics2D.fillRect((int) (MEDIUMLEFT * widthD), (int) (SIZEUP * heightD), (int) ((MEDIUMRIGHT - MEDIUMLEFT) * widthD), (int) ((SIZEDOWN - SIZEUP) * heightD));
-					break;
-
-					case 3:
-						tempGraphics2D.fillRect((int) (BIGLEFT * widthD), (int) (SIZEUP * heightD), (int) ((BIGRIGHT - BIGLEFT) * theLimits.width), (int) ((SIZEDOWN - SIZEUP) * heightD));
-					break;
-
-					case 4:
-						tempGraphics2D.fillRect((int) (VERYBIGLEFT * widthD), (int) (SIZEUP * heightD), (int) ((VERYBIGRIGHT - VERYBIGLEFT) * widthD), (int) ((SIZEDOWN - SIZEUP) * heightD));
-					break;
-
-				}
-
-				tempGraphics2D.setColor(brickColors[nbColors - 2]);
-
-				switch (nbColors)
-				{
-					case 2:
-						tempGraphics2D.fillRect((int) (TWOLEFT * widthD), (int) (COLORSUP * heightD), (int) ((TWORIGHT - TWOLEFT) * widthD), (int) ((COLORSDOWN - COLORSUP) * heightD));
-					break;
-
-					case 3:
-						tempGraphics2D.fillRect((int) (THREELEFT * widthD), (int) (COLORSUP * heightD), (int) ((THREERIGHT - THREELEFT) * theLimits.width), (int) ((COLORSDOWN - COLORSUP) * heightD));
-					break;
-
-					case 4:
-						tempGraphics2D.fillRect((int) (FOURLEFT * widthD), (int) (COLORSUP * heightD), (int) ((FOURRIGHT - FOURLEFT) * widthD), (int) ((COLORSDOWN - COLORSUP) * heightD));
-					break;
-
-					case 5:
-						tempGraphics2D.fillRect((int) (FIVELEFT * widthD), (int) (COLORSUP * heightD), (int) ((FIVERIGHT - FIVELEFT) * theLimits.width), (int) ((COLORSDOWN - COLORSUP) * heightD));
-					break;
-
-					case 6:
-						tempGraphics2D.fillRect((int) (SIXLEFT * widthD), (int) (COLORSUP * heightD), (int) ((SIXRIGHT - SIXLEFT) * widthD), (int) ((COLORSDOWN - COLORSUP) * heightD));
-					break;
-
-					case 7:
-						tempGraphics2D.fillRect((int) (SEVENLEFT * widthD), (int) (COLORSUP * heightD), (int) ((SEVENRIGHT - SEVENLEFT) * widthD), (int) ((COLORSDOWN - COLORSUP) * heightD));
-					break;
-
-					case 8:
-						tempGraphics2D.fillRect((int) (EIGHTLEFT * widthD), (int) (COLORSUP * heightD), (int) ((EIGHTRIGHT - EIGHTLEFT) * widthD), (int) ((COLORSDOWN - COLORSUP) * heightD));
-					break;
-				}
-
-				tempGraphics2D.setColor(brickColors[1]);
-
-				if (newSeed)
-				{
-					tempGraphics2D.fillRect((int) (NSEEDLEFT * widthD), (int) (NSEEDUP * heightD), (int) ((NSEEDRIGHT - NSEEDLEFT) * widthD), (int) ((NSEEDDOWN - NSEEDUP) * heightD));
-				}
-
-				if (bFlagImage != null) // Draw the flag if it exists, but do not crash elsewhere.
-					tempGraphics2D.drawImage(bFlagImage, 0, 0, theLimits.width, theLimits.height, Similar2DEmb.this.getParent());
-
-			}
-
-			if (!inMenu && !win)
-			{
-				tempGraphics2D.setFont(titleFont);
-				tempGraphics2D.setColor(scoreBG);
-				tempGraphics2D.drawString("   Score: " + score, theLimits.width / 4 + theLimits.width / 16 + 2, theLimits.height / 16 + 2);
-				tempGraphics2D.setFont(titleFont);
-				tempGraphics2D.setColor(scoreFG);
-				tempGraphics2D.drawString("   Score: " + score, theLimits.width / 4 + theLimits.width / 16, theLimits.height / 16);
-				
-				batch.setShader(fontShader);
-				font.draw(batch, "Hello smooth world!", 10, 10);
-				batch.setShader(null);
-			}
-
-			if (win)
-			{
-				tempGraphics2D.setColor(scoreFG);
-				tempGraphics2D.setFont(startingFont);
-				tempGraphics2D.drawString("Game over", theLimits.width / 2 - theLimits.width / 4, theLimits.height / 2 - theLimits.height / 6);
-				tempGraphics2D.setFont(titleFont);
-				tempGraphics2D.setColor(scoreBG);
-				tempGraphics2D.drawString("   Score: " + score, theLimits.width / 4 + theLimits.width / 16 + 2, theLimits.height / 2 - theLimits.height / 3 + 2);
-				tempGraphics2D.drawString("   Position: " + currentPosition, theLimits.width / 4 + theLimits.width / 16 + 2, theLimits.height / 2 + 2);
-				tempGraphics2D.setFont(titleFont);
-				tempGraphics2D.setColor(scoreFG);
-				tempGraphics2D.drawString("   Score: " + score, theLimits.width / 4 + theLimits.width / 16, theLimits.height / 2 - theLimits.height / 3);
-				tempGraphics2D.drawString("   Position: " + currentPosition, theLimits.width / 4 + theLimits.width / 16, theLimits.height / 2);
-
-				tempGraphics2D.setColor(scoreFG);
-				tempGraphics2D.drawString("Enter your name", theLimits.width / 4 + theLimits.width / 16 + 2, theLimits.height / 2 + theLimits.height / 3);
-				tempGraphics2D.drawString("- " + playerName + " -", theLimits.width / 4 + theLimits.width / 16 + 2, theLimits.height / 2 + theLimits.height / 2 - theLimits.height / 12);
-			}
-			if (loading)
-			{
-				tempGraphics2D.setColor(greyTans);
-
-				tempGraphics2D.fillRect(0, 0, theLimits.width, theLimits.height);
-				tempGraphics2D.setColor(scoreFG);
-				tempGraphics2D.setFont(startingFont);
-				tempGraphics2D.drawString("Loading...", theLimits.width / 2 - theLimits.width / 4, theLimits.height / 2 - theLimits.height / 6);
-			}
-
-			g.drawImage(myOffScreenImage, 0, 0, null);
-
-			frameDrawn = true;
+			yBloc = 0;
+			xBloc += stepBlocX;
 		}
-		else
-			frameDrawn = true;
+
+		Iterator i = zoneSelected.iterator();
+		shapeDrawer.setColor(Color.BLACK);
+
+		while (i.hasNext()) {
+			CoordXY currentCoord = (CoordXY) i.next();
+			shapeDrawer.filledRectangle(currentCoord.getX() * stepBlocX, currentCoord.getY() * stepBlocY, stepBlocX,
+					stepBlocY);
+		}
+
+		if (inMenu) {
+			shapeDrawer.setColor(greyTans);
+
+			shapeDrawer.filledRectangle(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+
+			shapeDrawer.setColor(brickColors[sizeGrid]);
+
+			double widthD = (double) Gdx.graphics.getWidth();
+			double heightD = (double) Gdx.graphics.getHeight();
+
+			switch (sizeGrid) {
+			case 0:
+				shapeDrawer.filledRectangle((int) (VERYSMALLLEFT * widthD), (int) (SIZEUP * heightD),
+						(int) ((VERYSMALLRIGHT - VERYSMALLLEFT) * widthD), (int) ((SIZEDOWN - SIZEUP) * heightD));
+				break;
+
+			case 1:
+				shapeDrawer.filledRectangle((int) (SMALLLEFT * widthD), (int) (SIZEUP * heightD),
+						(int) ((SMALLRIGHT - SMALLLEFT) * Gdx.graphics.getWidth()),
+						(int) ((SIZEDOWN - SIZEUP) * heightD));
+				break;
+
+			case 2:
+				shapeDrawer.filledRectangle((int) (MEDIUMLEFT * widthD), (int) (SIZEUP * heightD),
+						(int) ((MEDIUMRIGHT - MEDIUMLEFT) * widthD), (int) ((SIZEDOWN - SIZEUP) * heightD));
+				break;
+
+			case 3:
+				shapeDrawer.filledRectangle((int) (BIGLEFT * widthD), (int) (SIZEUP * heightD),
+						(int) ((BIGRIGHT - BIGLEFT) * Gdx.graphics.getWidth()), (int) ((SIZEDOWN - SIZEUP) * heightD));
+				break;
+
+			case 4:
+				shapeDrawer.filledRectangle((int) (VERYBIGLEFT * widthD), (int) (SIZEUP * heightD),
+						(int) ((VERYBIGRIGHT - VERYBIGLEFT) * widthD), (int) ((SIZEDOWN - SIZEUP) * heightD));
+				break;
+
+			}
+
+			shapeDrawer.setColor(brickColors[nbColors - 2]);
+
+			switch (nbColors) {
+			case 2:
+				shapeDrawer.filledRectangle((int) (TWOLEFT * widthD), (int) (COLORSUP * heightD),
+						(int) ((TWORIGHT - TWOLEFT) * widthD), (int) ((COLORSDOWN - COLORSUP) * heightD));
+				break;
+
+			case 3:
+				shapeDrawer.filledRectangle((int) (THREELEFT * widthD), (int) (COLORSUP * heightD),
+						(int) ((THREERIGHT - THREELEFT) * Gdx.graphics.getWidth()),
+						(int) ((COLORSDOWN - COLORSUP) * heightD));
+				break;
+
+			case 4:
+				shapeDrawer.filledRectangle((int) (FOURLEFT * widthD), (int) (COLORSUP * heightD),
+						(int) ((FOURRIGHT - FOURLEFT) * widthD), (int) ((COLORSDOWN - COLORSUP) * heightD));
+				break;
+
+			case 5:
+				shapeDrawer.filledRectangle((int) (FIVELEFT * widthD), (int) (COLORSUP * heightD),
+						(int) ((FIVERIGHT - FIVELEFT) * Gdx.graphics.getWidth()),
+						(int) ((COLORSDOWN - COLORSUP) * heightD));
+				break;
+
+			case 6:
+				shapeDrawer.filledRectangle((int) (SIXLEFT * widthD), (int) (COLORSUP * heightD),
+						(int) ((SIXRIGHT - SIXLEFT) * widthD), (int) ((COLORSDOWN - COLORSUP) * heightD));
+				break;
+
+			case 7:
+				shapeDrawer.filledRectangle((int) (SEVENLEFT * widthD), (int) (COLORSUP * heightD),
+						(int) ((SEVENRIGHT - SEVENLEFT) * widthD), (int) ((COLORSDOWN - COLORSUP) * heightD));
+				break;
+
+			case 8:
+				shapeDrawer.filledRectangle((int) (EIGHTLEFT * widthD), (int) (COLORSUP * heightD),
+						(int) ((EIGHTRIGHT - EIGHTLEFT) * widthD), (int) ((COLORSDOWN - COLORSUP) * heightD));
+				break;
+			}
+
+			shapeDrawer.setColor(brickColors[1]);
+
+			if (newSeed) {
+				shapeDrawer.filledRectangle((int) (NSEEDLEFT * widthD), (int) (NSEEDUP * heightD),
+						(int) ((NSEEDRIGHT - NSEEDLEFT) * widthD), (int) ((NSEEDDOWN - NSEEDUP) * heightD));
+			}
+
+			if (bFlagImage != null) // Draw the flag if it exists, but do not crash elsewhere.
+				batch.draw(bFlagImage, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+
+		}
+
+		if (!inMenu && !win) {
+			// titleFont
+			glyphLayout.setText(font, "   Score: " + score, scoreBG,
+					Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16 + 2, Align.center, false);
+
+			// tempGraphics2D.setFont(titleFont);
+			// tempGraphics2D.setColor(scoreBG);
+			// tempGraphics2D.drawString(" Score: " + score, Gdx.graphics.getWidth() / 4 +
+			// Gdx.graphics.getWidth() / 16 + 2, Gdx.graphics.getHeight() / 16 + 2);
+
+			glyphLayout.setText(font, "   Score: " + score, scoreFG,
+					Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16, Align.center, false);
+			// tempGraphics2D.setFont(titleFont);
+			// tempGraphics2D.setColor(scoreFG);
+			// tempGraphics2D.drawString(" Score: " + score, Gdx.graphics.getWidth() / 4 +
+			// Gdx.graphics.getWidth() / 16, Gdx.graphics.getHeight() / 16);
+
+			batch.setShader(fontShader);
+			font.draw(batch, "Hello smooth world!", 10, 10);
+			batch.setShader(null);
+		}
+
+		if (win) {
+			// startingFont
+			glyphLayout.setText(font, "Game over", scoreFG, Gdx.graphics.getWidth() / 2 - Gdx.graphics.getWidth() / 4,
+					Align.center, false);
+//				tempGraphics2D.setColor(scoreFG);
+//				tempGraphics2D.setFont(startingFont);
+//				tempGraphics2D.drawString("Game over", Gdx.graphics.getWidth() / 2 - Gdx.graphics.getWidth() / 4, Gdx.graphics.getHeight() / 2 - Gdx.graphics.getHeight() / 6);
+
+			// titleFont
+			glyphLayout.setText(font, "   Score: " + score, scoreBG,
+					Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16 + 2, Align.center, false);
+			glyphLayout.setText(font, "   Position: " + currentPosition, scoreBG,
+					Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16 + 2, Align.center, false);
+
+//				tempGraphics2D.setFont(titleFont);
+//				tempGraphics2D.setColor(scoreBG);
+//				tempGraphics2D.drawString("   Score: " + score, Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16 + 2, Gdx.graphics.getHeight() / 2 - Gdx.graphics.getHeight() / 3 + 2);
+//				tempGraphics2D.drawString("   Position: " + currentPosition, Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16 + 2, Gdx.graphics.getHeight() / 2 + 2);
+
+			glyphLayout.setText(font, "   Score: " + score, scoreFG,
+					Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16, Align.center, false);
+			glyphLayout.setText(font, "   Position: " + currentPosition, scoreFG,
+					Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16, Align.center, false);
+
+//				tempGraphics2D.setFont(titleFont);
+//				tempGraphics2D.setColor(scoreFG);
+//				tempGraphics2D.drawString("   Score: " + score, Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16, Gdx.graphics.getHeight() / 2 - Gdx.graphics.getHeight() / 3);
+//				tempGraphics2D.drawString("   Position: " + currentPosition, Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16, Gdx.graphics.getHeight() / 2);
+
+			glyphLayout.setText(font, "Enter your name", scoreFG,
+					Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16 + 2, Align.center, false);
+			glyphLayout.setText(font, "- " + playerName + " -", scoreFG,
+					Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16 + 2, Align.center, false);
+//				tempGraphics2D.setColor(scoreFG);
+//				tempGraphics2D.drawString("Enter your name", Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16 + 2, Gdx.graphics.getHeight() / 2 + Gdx.graphics.getHeight() / 3);
+//				tempGraphics2D.drawString("- " + playerName + " -", Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16 + 2, Gdx.graphics.getHeight() / 2 + Gdx.graphics.getHeight() / 2 - Gdx.graphics.getHeight() / 12);
+		}
+		if (loading) {
+			shapeDrawer.setColor(greyTans);
+
+			shapeDrawer.filledRectangle(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+
+			glyphLayout.setText(font, "Loading...", scoreFG, Gdx.graphics.getWidth() / 2 - Gdx.graphics.getWidth() / 4,
+					Align.center, false);
+//				tempGraphics2D.setColor(scoreFG);
+//				tempGraphics2D.setFont(startingFont);
+//				tempGraphics2D.drawString("Loading...", Gdx.graphics.getWidth() / 2 - Gdx.graphics.getWidth() / 4, Gdx.graphics.getHeight() / 2 - Gdx.graphics.getHeight() / 6);
+		}
 	}
 
 	public void initGraphics()
 	{
 		loading = true;
 		
-		File flagImageFile = new File("Gfx/MenuPage.png");
-
-		System.out.println("Looking in " + flagImageFile.getAbsolutePath());
+        stage = new Stage(new ScreenViewport());
+        Gdx.input.setInputProcessor(stage);
+        
 		try
 		{
-			bFlagImage = ImageIO.read(flagImageFile);
+			bFlagImage = new Texture(Gdx.files.internal("Gfx/MenuPage.png"));
 		}
 		catch (Exception e)
 		{
@@ -1109,13 +1127,10 @@ public class SimilarDX extends ApplicationAdapter {
 			System.err.println("MenuPage not found");
 			//System.exit(1);
 		}
-		///BufferedImage = new BufferedImage(bgImage);
-
-		File satImageFile = new File("Gfx/EarthMap6.jpg");
 
 		try
 		{
-			bSatImage = ImageIO.read(satImageFile);
+			bSatImage = new Texture(Gdx.files.internal("Gfx/EarthMap6.jpg"));
 		}
 		catch (Exception e)
 		{
@@ -1129,11 +1144,9 @@ public class SimilarDX extends ApplicationAdapter {
 			//System.exit(1);
 		}
 
-		File testBlockImage = new File("Gfx/TestBlocs.png");
-
 		try
 		{
-			bAnimImage = ImageIO.read(testBlockImage);
+			bAnimImage = new Texture(Gdx.files.internal("Gfx/TestBlocs.png"));
 		}
 		catch (Exception e)
 		{
@@ -1171,7 +1184,24 @@ public class SimilarDX extends ApplicationAdapter {
 		if (!fontShader.isCompiled()) {
 		    Gdx.app.error("fontShader", "compilation failed:\n" + fontShader.getLog());
 		}
+		
+		glyphLayout = new GlyphLayout();
 
+		atlasBitmapBlock = new TextureAtlas(Gdx.files.internal("Gfx/TestBlocsAssets.atlas"));
+		
+		for (int iBlock = 1  ; iBlock < 10; iBlock ++)
+		{
+			spriteBlock[iBlock] = atlasBitmapBlock.createSprite("Block"+iBlock);
+		}
+		
+		Pixmap pixmap = new Pixmap(1, 1, Format.RGBA8888);
+		pixmap.setColor(Color.WHITE);
+		pixmap.drawPixel(0, 0);
+		Texture texture = new Texture(pixmap); //remember to dispose of later
+		pixmap.dispose();
+		TextureRegion region = new TextureRegion(texture, 0, 0, 1, 1);
+		
+		shapeDrawer = new ShapeDrawer(batch, region);
 		
 		loading = false;
 		//this.update(this.getGraphics());
@@ -1184,13 +1214,13 @@ public class SimilarDX extends ApplicationAdapter {
 		java.util.Random myRandomGen = new java.util.Random();
 		int nbBackgroundImage = myRandomGen.nextInt(allBackgroundsFiles.length);
 
-		File nextBackground = allBackgroundsFiles[nbBackgroundImage];
+		FileHandle nextBackground = allBackgroundsFiles[nbBackgroundImage];
 
 		try
 		{
-			bSatImage = ImageIO.read(nextBackground);
+			bSatImage = new Texture(nextBackground);
 		}
-		catch (IOException e)
+		catch (Exception e)
 		{
 			myLog.add2Log(1, e);
 			System.err.println("Exception: backgrounds/BackImage" + nbBackgroundImage + ".jpg image not recovered ");
@@ -1217,15 +1247,13 @@ public class SimilarDX extends ApplicationAdapter {
 		//            }
 		//            loading=false;
 		loading = false;
-
-		this.update(this.getGraphics());
 	}
 
 	public void initSounds()
 	{
 		loading = true;	
 
-        music = Gdx.audio.newMusic(Gdx.files.internal("music/A_Mission.mp3"));
+        music = Gdx.audio.newMusic(Gdx.files.internal("music/anjou.mp3"));
         
 		badSnd = Gdx.audio.newSound(Gdx.files.internal("Sounds/badSnd.wav"));
 
@@ -1237,20 +1265,36 @@ public class SimilarDX extends ApplicationAdapter {
 
 		endSnd = Gdx.audio.newSound(Gdx.files.internal("Sounds/endSnd.wav"));
 
+		//music.play();
+		
 		loading = false;
 	}
 	
 	@Override
 	public void create () {
+		camera = new OrthographicCamera();
+		camera.setToOrtho(false, 1280, 720);
+		  
+		//used=true;
+
+		myLog.add2Log(1, "Initialised");
+
 		batch = new SpriteBatch();
-		img = new Texture("badlogic.jpg");
+		
+		initGraphics();		
+		
+		initSounds();
 	}
 
 	@Override
 	public void render () {
 		ScreenUtils.clear(1, 0, 0, 1);
+		
+		camera.update();
+		batch.setProjectionMatrix(camera.combined);
+		
 		batch.begin();
-		batch.draw(img, 0, 0);
+		postRender();
 		batch.end();
 		
 		if (Gdx.input.isButtonJustPressed(Buttons.LEFT)) {
@@ -1265,6 +1309,59 @@ public class SimilarDX extends ApplicationAdapter {
 		myLog.add2Log(1, "Leaving cleanly");
 		
 		batch.dispose();
-		img.dispose();
+		music.dispose();
+		badSnd.dispose();
+		okSnd.dispose();
+		fallSnd.dispose();
+		bigSnd.dispose();
+		endSnd.dispose();
+	}
+
+	@Override
+	public boolean keyDown(int keycode) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean keyUp(int keycode) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean keyTyped(char character) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean touchCancelled(int screenX, int screenY, int pointer, int button) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean touchDragged(int screenX, int screenY, int pointer) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean mouseMoved(int screenX, int screenY) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean scrolled(float amountX, float amountY) {
+		// TODO Auto-generated method stub
+		return false;
 	}
 }
