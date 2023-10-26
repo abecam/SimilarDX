@@ -163,7 +163,7 @@ public class LogManager
     
             //System.out.println("TO file:"+logFile+" : "+line+"\n");
             if (line != null) {
-            	FileUtils.writeStringToFile(logFile, dateToAppend+ ":  " + line, "UTF-8", true);
+            	FileUtils.writeStringToFile(logFile, dateToAppend+ ":  " + line + "\n", "UTF-8", true);
                 if (systemEcho) {
                 	System.out.println(dateToAppend + ":  " + line);    	 
                 }
@@ -218,7 +218,7 @@ public class LogManager
 
     public int add2Log(int level,String line)
     {
-        if (level<levelGen)
+        if (level < levelGen)
             return add2Log(line);
         else
             return 0; // Ok but nothing
@@ -226,7 +226,7 @@ public class LogManager
     
     public int add2Log(int level,Exception eToPr)
     {
-        if (level<levelExc)
+        if (level < levelExc)
             return add2Log(eToPr);
         else
             return 0; // Ok but nothing

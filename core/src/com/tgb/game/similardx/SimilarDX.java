@@ -16,6 +16,7 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Pixmap.Format;
@@ -34,15 +35,18 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
-import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.badlogic.gdx.utils.viewport.StretchViewport;
 
 import se.hgo.mmroutils.LogManager;
 import space.earlygrey.shapedrawer.ShapeDrawer;
 
 public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
+	private static final int HEIGHT = 720;
+	private static final int WIDTH = 1280;
 	SpriteBatch batch;
-	Texture img;
-	OrthographicCamera camera;
+	
+	private OrthographicCamera camera;
+	private StretchViewport viewport;
 	
 	LogManager myLog;
 
@@ -169,10 +173,42 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 	Color greyTans;
 
 	CoordXY blocSelected;
+	CoordXY blocHovered;
 
-	private FileHandle backFolder;
-
-	private FileHandle[] allBackgroundsFiles;
+	// '{print $NF}' in the Backgrounds folder
+	private String[] allBackgroundsFiles =
+			{"EPSN0171.JPG\n",
+					"EPSN0206.JPG",
+					"EPSN0338.JPG",
+					"EPSN0469.JPG",
+					"EPSN0744.JPG",
+					"EPSN0808.JPG",
+					"EPSN0911.JPG",
+					"EPSN0913.JPG",
+					"EPSN1029.JPG",
+					"EPSN1175.JPG",
+					"EPSN1253.JPG",
+					"EPSN1263.JPG",
+					"EPSN1309.JPG",
+					"EPSN1326.JPG",
+					"EPSN1331.JPG",
+					"EPSN1336.JPG",
+					"EPSN1564.JPG",
+					"EPSN1574.JPG",
+					"EPSN1593.JPG",
+					"EPSN1620.JPG",
+					"EPSN1624.JPG",
+					"EPSN1701.JPG",
+					"EPSN1729.JPG",
+					"EPSN1738.JPG",
+					"EPSN1767.JPG",
+					"EPSN2244.JPG",
+					"EPSN2439.JPG",
+					"EPSN2454.JPG",
+					"EPSN2480.JPG",
+					"EPSN2486.JPG",
+					"EPSN2493.JPG",
+					"hotelului.JPG"};
 
 	private TextureAtlas atlasBitmapBlock;
 	
@@ -538,18 +574,8 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 		myLog.add2Log(1, "");
 		myLog.add2Log(1, "------------------------------------------");
 
-		backFolder = new FileHandle("Gfx/Backgrounds/");
-
-		if (backFolder.isDirectory())
-		{
-			allBackgroundsFiles = backFolder.list();
-		}
-		else
-		{
-			myLog.add2Log(0, backFolder + " is not a folder");
-		}
-
 		blocSelected = new CoordXY();
+		blocHovered = new CoordXY();
 
 		playerName = new StringBuffer();
 
@@ -575,6 +601,9 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 		tabOfBlocs = null;
 		java.util.Random myRandomGen = new java.util.Random();
 
+		stepBlocX = WIDTH / nbBlocX;
+		stepBlocY = HEIGHT / nbBlocY;
+		
 		tabOfBlocs = new int[nbBlocX][nbBlocY];
 		undos = new int[nbBlocX][nbBlocY];
 
@@ -621,18 +650,35 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 	{
 		posUndo = 0;
 	}
-
+	Vector3 tp = new Vector3();
+	
+	private int stepBlocX;
+	private int stepBlocY;
+	
 	@Override public boolean touchDown (int screenX, int screenY, int pointer, int button) 
 	{
 		// ignore if its not left mouse button or first touch pointer
+		if (button == Input.Buttons.RIGHT)
+		{
+			if (!inMenu && !win) 
+			{
+				pullBoard();
+			}
+			return true;
+		}
+		
 		if (button != Input.Buttons.LEFT || pointer > 0) return false;
+		
+		Vector3 posInGame = camera.unproject(tp.set(screenX, screenY, 0));
+		posInGame.y = HEIGHT - posInGame.y;
 		
 		if (!inMenu && !win)
 		{
-			float stepBlocX = Gdx.graphics.getWidth() / nbBlocX;
-			float stepBlocY = Gdx.graphics.getHeight() / nbBlocY;
-			blocSelected.setX((int )(((float )screenX) / stepBlocX));
-			blocSelected.setY((int )(((float )screenY) / stepBlocY));
+			stepBlocX = WIDTH / nbBlocX;
+			stepBlocY = HEIGHT / nbBlocY;
+			
+			blocSelected.setX((int )(((float )posInGame.x) / stepBlocX));
+			blocSelected.setY((int )(((float )posInGame.y) / stepBlocY));
 			//if (firstTimeInClick)
 			// First a simple selection, but don't accept a 1 bloc zone
 			//myLog.add2Log("One block selected in " + blocSelected.getX() + " : " + blocSelected.getY());
@@ -693,38 +739,38 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 			if (!win)
 			{
 				// Menu!
-				double widthD = (double) Gdx.graphics.getWidth();
-				double heightD = (double) Gdx.graphics.getHeight();
+				double widthD = (double) WIDTH;
+				double heightD = (double) HEIGHT;
 
-				if ((screenX >= (int) (VERYSMALLLEFT * widthD)) && (screenY >= (int) (SIZEUP * heightD)) && (screenX <= (int) (VERYSMALLRIGHT * widthD)) && (screenY <= (int) (SIZEDOWN * heightD)))
+				if ((posInGame.x >= (int) (VERYSMALLLEFT * widthD)) && (posInGame.y >= (int) (SIZEUP * heightD)) && (posInGame.x <= (int) (VERYSMALLRIGHT * widthD)) && (posInGame.y <= (int) (SIZEDOWN * heightD)))
 				{
 					sizeGrid = 0;
 					nbBlocX = 20;
 					nbBlocY = 15;
 					setGrid();
 				}
-				if ((screenX >= (int) (SMALLLEFT * widthD)) && (screenY >= (int) (SIZEUP * heightD)) && (screenX <= (int) (SMALLRIGHT * widthD)) && (screenY <= (int) (SIZEDOWN * heightD)))
+				if ((posInGame.x >= (int) (SMALLLEFT * widthD)) && (posInGame.y >= (int) (SIZEUP * heightD)) && (posInGame.x <= (int) (SMALLRIGHT * widthD)) && (posInGame.y <= (int) (SIZEDOWN * heightD)))
 				{
 					sizeGrid = 1;
 					nbBlocX = 32;
 					nbBlocY = 24;
 					setGrid();
 				}
-				if ((screenX >= (int) (MEDIUMLEFT * widthD)) && (screenY >= (int) (SIZEUP * heightD)) && (screenX <= (int) (MEDIUMRIGHT * widthD)) && (screenY <= (int) (SIZEDOWN * heightD)))
+				if ((posInGame.x >= (int) (MEDIUMLEFT * widthD)) && (posInGame.y >= (int) (SIZEUP * heightD)) && (posInGame.x <= (int) (MEDIUMRIGHT * widthD)) && (posInGame.y <= (int) (SIZEDOWN * heightD)))
 				{
 					sizeGrid = 2;
 					nbBlocX = 40;
 					nbBlocY = 30;
 					setGrid();
 				}
-				if ((screenX >= (int) (BIGLEFT * widthD)) && (screenY >= (int) (SIZEUP * heightD)) && (screenX <= (int) (BIGRIGHT * widthD)) && (screenY <= (int) (SIZEDOWN * heightD)))
+				if ((posInGame.x >= (int) (BIGLEFT * widthD)) && (posInGame.y >= (int) (SIZEUP * heightD)) && (posInGame.x <= (int) (BIGRIGHT * widthD)) && (posInGame.y <= (int) (SIZEDOWN * heightD)))
 				{
 					sizeGrid = 3;
 					nbBlocX = 80;
 					nbBlocY = 60;
 					setGrid();
 				}
-				if ((screenX >= (int) (VERYBIGLEFT * widthD)) && (screenY >= (int) (SIZEUP * heightD)) && (screenX <= (int) (VERYBIGRIGHT * widthD)) && (screenY <= (int) (SIZEDOWN * heightD)))
+				if ((posInGame.x >= (int) (VERYBIGLEFT * widthD)) && (posInGame.y >= (int) (SIZEUP * heightD)) && (posInGame.x <= (int) (VERYBIGRIGHT * widthD)) && (posInGame.y <= (int) (SIZEDOWN * heightD)))
 				{
 					sizeGrid = 4;
 					nbBlocX = 160;
@@ -732,56 +778,56 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 					setGrid();
 				}
 
-				if ((screenX >= (int) (TWOLEFT * widthD)) && (screenY >= (int) (COLORSUP * heightD)) && (screenX <= (int) (TWORIGHT * widthD)) && (screenY <= (int) (COLORSDOWN * heightD)))
+				if ((posInGame.x >= (int) (TWOLEFT * widthD)) && (posInGame.y >= (int) (COLORSUP * heightD)) && (posInGame.x <= (int) (TWORIGHT * widthD)) && (posInGame.y <= (int) (COLORSDOWN * heightD)))
 				{
 					nbColors = 2;
 					setGrid();
 				}
 
-				if ((screenX >= (int) (THREELEFT * widthD)) && (screenY >= (int) (COLORSUP * heightD)) && (screenX <= (int) (THREERIGHT * widthD)) && (screenY <= (int) (COLORSDOWN * heightD)))
+				if ((posInGame.x >= (int) (THREELEFT * widthD)) && (posInGame.y >= (int) (COLORSUP * heightD)) && (posInGame.x <= (int) (THREERIGHT * widthD)) && (posInGame.y <= (int) (COLORSDOWN * heightD)))
 				{
 					nbColors = 3;
 					setGrid();
 				}
 
-				if ((screenX >= (int) (FOURLEFT * widthD)) && (screenY >= (int) (COLORSUP * heightD)) && (screenX <= (int) (FOURRIGHT * widthD)) && (screenY <= (int) (COLORSDOWN * heightD)))
+				if ((posInGame.x >= (int) (FOURLEFT * widthD)) && (posInGame.y >= (int) (COLORSUP * heightD)) && (posInGame.x <= (int) (FOURRIGHT * widthD)) && (posInGame.y <= (int) (COLORSDOWN * heightD)))
 				{
 					nbColors = 4;
 					setGrid();
 				}
 
-				if ((screenX >= (int) (FIVELEFT * widthD)) && (screenY >= (int) (COLORSUP * heightD)) && (screenX <= (int) (FIVERIGHT * widthD)) && (screenY <= (int) (COLORSDOWN * heightD)))
+				if ((posInGame.x >= (int) (FIVELEFT * widthD)) && (posInGame.y >= (int) (COLORSUP * heightD)) && (posInGame.x <= (int) (FIVERIGHT * widthD)) && (posInGame.y <= (int) (COLORSDOWN * heightD)))
 				{
 					nbColors = 5;
 					setGrid();
 				}
 
-				if ((screenX >= (int) (SIXLEFT * widthD)) && (screenY >= (int) (COLORSUP * heightD)) && (screenX <= (int) (SIXRIGHT * widthD)) && (screenY <= (int) (COLORSDOWN * heightD)))
+				if ((posInGame.x >= (int) (SIXLEFT * widthD)) && (posInGame.y >= (int) (COLORSUP * heightD)) && (posInGame.x <= (int) (SIXRIGHT * widthD)) && (posInGame.y <= (int) (COLORSDOWN * heightD)))
 				{
 					nbColors = 6;
 					setGrid();
 				}
 
-				if ((screenX >= (int) (SEVENLEFT * widthD)) && (screenY >= (int) (COLORSUP * heightD)) && (screenX <= (int) (SEVENRIGHT * widthD)) && (screenY <= (int) (COLORSDOWN * heightD)))
+				if ((posInGame.x >= (int) (SEVENLEFT * widthD)) && (posInGame.y >= (int) (COLORSUP * heightD)) && (posInGame.x <= (int) (SEVENRIGHT * widthD)) && (posInGame.y <= (int) (COLORSDOWN * heightD)))
 				{
 					nbColors = 7;
 					setGrid();
 				}
 
-				if ((screenX >= (int) (EIGHTLEFT * widthD)) && (screenY >= (int) (COLORSUP * heightD)) && (screenX <= (int) (EIGHTRIGHT * widthD)) && (screenY <= (int) (COLORSDOWN * heightD)))
+				if ((posInGame.x >= (int) (EIGHTLEFT * widthD)) && (posInGame.y >= (int) (COLORSUP * heightD)) && (posInGame.x <= (int) (EIGHTRIGHT * widthD)) && (posInGame.y <= (int) (COLORSDOWN * heightD)))
 				{
 					nbColors = 8;
 					setGrid();
 				}
 
-				if ((screenX >= (int) (NSEEDLEFT * widthD)) && (screenY >= (int) (NSEEDUP * heightD)) && (screenX <= (int) (NSEEDRIGHT * widthD)) && (screenY <= (int) (NSEEDDOWN * heightD)))
+				if ((posInGame.x >= (int) (NSEEDLEFT * widthD)) && (posInGame.y >= (int) (NSEEDUP * heightD)) && (posInGame.x <= (int) (NSEEDRIGHT * widthD)) && (posInGame.y <= (int) (NSEEDDOWN * heightD)))
 				{
 					newSeed = true;
 					setGrid();
 					newSeed = false;
 				}
 
-				if ((screenX >= (int) (PLAYLEFT * widthD)) && (screenY >= (int) (PLAYUP * heightD)) && (screenX <= (int) (PLAYRIGHT * widthD)) && (screenY <= (int) (PLAYDOWN * heightD)))
+				if ((posInGame.x >= (int) (PLAYLEFT * widthD)) && (posInGame.y >= (int) (PLAYUP * heightD)) && (posInGame.x <= (int) (PLAYRIGHT * widthD)) && (posInGame.y <= (int) (PLAYDOWN * heightD)))
 				{
 					pickImageBackground();
 					inMenu = false;
@@ -797,11 +843,6 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 			}
 		}
 		return true;
-	}
-	
-	public void rightMouseClicked()
-	{
-		if (!inMenu && !win) pullBoard();
 	}
 
 	/* (non-Javadoc)
@@ -871,8 +912,6 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 
 	Texture bFlagImage;
 
-	Texture bAnimImage;
-
 	Texture bSatImage;
 
 	Color brickColors[];
@@ -901,29 +940,24 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 	}
 
 	public void postRender() {
+		
 		/*
-		 * ourInfosFont = new Font("Arial", Font.PLAIN, Gdx.graphics.getWidth() / 40);
-		 * scoresFont = new Font("Arial", Font.PLAIN, Gdx.graphics.getWidth() / 19);
-		 * titleFont = new Font("Arial", Font.PLAIN, Gdx.graphics.getWidth() / 20);
-		 * infosFont = new Font("Arial", Font.PLAIN, Gdx.graphics.getWidth() / 50);
-		 * startingFont = new Font("Arial", Font.PLAIN, Gdx.graphics.getWidth() / 10);
+		 * ourInfosFont = new Font("Arial", Font.PLAIN, width / 40);
+		 * scoresFont = new Font("Arial", Font.PLAIN, width / 19);
+		 * titleFont = new Font("Arial", Font.PLAIN, width / 20);
+		 * infosFont = new Font("Arial", Font.PLAIN, width / 50);
+		 * startingFont = new Font("Arial", Font.PLAIN, width / 10);
 		 */
 
-		batch.draw(bSatImage, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+		batch.draw(bSatImage, 0, 0, WIDTH, HEIGHT);
 
-		int stepBlocX = Gdx.graphics.getWidth() / nbBlocX;
-		int stepBlocY = Gdx.graphics.getHeight() / nbBlocY;
 		int xBloc = 0;
 		int yBloc = 0;
 
 		for (int x = 0; x < nbBlocX; x++) {
 			for (int y = 0; y < nbBlocY; y++) {
 				if (tabOfBlocs[x][y] != voidBloc) {
-					if (bAnimImage != null)
-						batch.draw(spriteBlock[tabOfBlocs[x][y]], xBloc, yBloc, stepBlocX, stepBlocY);
-					else {
-						shapeDrawer.filledRectangle(xBloc, yBloc, stepBlocX, stepBlocY, brickColors[tabOfBlocs[x][y]]);
-					}
+					batch.draw(spriteBlock[tabOfBlocs[x][y]], xBloc, HEIGHT - yBloc, stepBlocX, stepBlocY);
 				}
 				yBloc += stepBlocY;
 			}
@@ -931,49 +965,60 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 			xBloc += stepBlocX;
 		}
 
-		Iterator i = zoneSelected.iterator();
+		if (tabOfBlocs[blocHovered.getX()][blocHovered.getY()] != voidBloc)
+		{
+			shapeDrawer.setColor(Color.WHITE);
+			shapeDrawer.filledRectangle((stepBlocX * blocHovered.getX()), HEIGHT - (stepBlocY * blocHovered.getY()), stepBlocX, stepBlocY);
+		}
+		else
+		{
+			shapeDrawer.setColor(Color.RED);
+			shapeDrawer.filledRectangle(xBloc, HEIGHT - yBloc, stepBlocX, stepBlocY);
+		}
+			
+		Iterator<CoordXY> i = zoneSelected.iterator();
 		shapeDrawer.setColor(Color.BLACK);
 
 		while (i.hasNext()) {
 			CoordXY currentCoord = (CoordXY) i.next();
-			shapeDrawer.filledRectangle(currentCoord.getX() * stepBlocX, currentCoord.getY() * stepBlocY, stepBlocX,
+			shapeDrawer.filledRectangle(currentCoord.getX() * stepBlocX, HEIGHT - currentCoord.getY() * stepBlocY, stepBlocX,
 					stepBlocY);
 		}
 
 		if (inMenu) {
 			shapeDrawer.setColor(greyTans);
 
-			shapeDrawer.filledRectangle(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+			shapeDrawer.filledRectangle(0, 0, WIDTH, HEIGHT);
 
 			shapeDrawer.setColor(brickColors[sizeGrid]);
 
-			double widthD = (double) Gdx.graphics.getWidth();
-			double heightD = (double) Gdx.graphics.getHeight();
+			double widthD = (double) WIDTH;
+			double heightD = (double) HEIGHT;
 
 			switch (sizeGrid) {
 			case 0:
-				shapeDrawer.filledRectangle((int) (VERYSMALLLEFT * widthD), (int) (SIZEUP * heightD),
+				shapeDrawer.filledRectangle((int) (VERYSMALLLEFT * widthD), HEIGHT - (int) (SIZEUP * heightD),
 						(int) ((VERYSMALLRIGHT - VERYSMALLLEFT) * widthD), (int) ((SIZEDOWN - SIZEUP) * heightD));
 				break;
 
 			case 1:
-				shapeDrawer.filledRectangle((int) (SMALLLEFT * widthD), (int) (SIZEUP * heightD),
-						(int) ((SMALLRIGHT - SMALLLEFT) * Gdx.graphics.getWidth()),
+				shapeDrawer.filledRectangle((int) (SMALLLEFT * widthD), HEIGHT - (int) (SIZEUP * heightD),
+						(int) ((SMALLRIGHT - SMALLLEFT) * widthD),
 						(int) ((SIZEDOWN - SIZEUP) * heightD));
 				break;
 
 			case 2:
-				shapeDrawer.filledRectangle((int) (MEDIUMLEFT * widthD), (int) (SIZEUP * heightD),
+				shapeDrawer.filledRectangle((int) (MEDIUMLEFT * widthD), HEIGHT - (int) (SIZEUP * heightD),
 						(int) ((MEDIUMRIGHT - MEDIUMLEFT) * widthD), (int) ((SIZEDOWN - SIZEUP) * heightD));
 				break;
 
 			case 3:
-				shapeDrawer.filledRectangle((int) (BIGLEFT * widthD), (int) (SIZEUP * heightD),
-						(int) ((BIGRIGHT - BIGLEFT) * Gdx.graphics.getWidth()), (int) ((SIZEDOWN - SIZEUP) * heightD));
+				shapeDrawer.filledRectangle((int) (BIGLEFT * widthD), HEIGHT - (int) (SIZEUP * heightD),
+						(int) ((BIGRIGHT - BIGLEFT) * widthD), (int) ((SIZEDOWN - SIZEUP) * heightD));
 				break;
 
 			case 4:
-				shapeDrawer.filledRectangle((int) (VERYBIGLEFT * widthD), (int) (SIZEUP * heightD),
+				shapeDrawer.filledRectangle((int) (VERYBIGLEFT * widthD), HEIGHT - (int) (SIZEUP * heightD),
 						(int) ((VERYBIGRIGHT - VERYBIGLEFT) * widthD), (int) ((SIZEDOWN - SIZEUP) * heightD));
 				break;
 
@@ -983,39 +1028,39 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 
 			switch (nbColors) {
 			case 2:
-				shapeDrawer.filledRectangle((int) (TWOLEFT * widthD), (int) (COLORSUP * heightD),
+				shapeDrawer.filledRectangle((int) (TWOLEFT * widthD), HEIGHT - (int) (COLORSUP * heightD),
 						(int) ((TWORIGHT - TWOLEFT) * widthD), (int) ((COLORSDOWN - COLORSUP) * heightD));
 				break;
 
 			case 3:
-				shapeDrawer.filledRectangle((int) (THREELEFT * widthD), (int) (COLORSUP * heightD),
-						(int) ((THREERIGHT - THREELEFT) * Gdx.graphics.getWidth()),
+				shapeDrawer.filledRectangle((int) (THREELEFT * widthD), HEIGHT - (int) (COLORSUP * heightD),
+						(int) ((THREERIGHT - THREELEFT) * widthD),
 						(int) ((COLORSDOWN - COLORSUP) * heightD));
 				break;
 
 			case 4:
-				shapeDrawer.filledRectangle((int) (FOURLEFT * widthD), (int) (COLORSUP * heightD),
+				shapeDrawer.filledRectangle((int) (FOURLEFT * widthD), HEIGHT - (int) (COLORSUP * heightD),
 						(int) ((FOURRIGHT - FOURLEFT) * widthD), (int) ((COLORSDOWN - COLORSUP) * heightD));
 				break;
 
 			case 5:
-				shapeDrawer.filledRectangle((int) (FIVELEFT * widthD), (int) (COLORSUP * heightD),
-						(int) ((FIVERIGHT - FIVELEFT) * Gdx.graphics.getWidth()),
+				shapeDrawer.filledRectangle((int) (FIVELEFT * widthD), HEIGHT - (int) (COLORSUP * heightD),
+						(int) ((FIVERIGHT - FIVELEFT) * widthD),
 						(int) ((COLORSDOWN - COLORSUP) * heightD));
 				break;
 
 			case 6:
-				shapeDrawer.filledRectangle((int) (SIXLEFT * widthD), (int) (COLORSUP * heightD),
+				shapeDrawer.filledRectangle((int) (SIXLEFT * widthD), HEIGHT - (int) (COLORSUP * heightD),
 						(int) ((SIXRIGHT - SIXLEFT) * widthD), (int) ((COLORSDOWN - COLORSUP) * heightD));
 				break;
 
 			case 7:
-				shapeDrawer.filledRectangle((int) (SEVENLEFT * widthD), (int) (COLORSUP * heightD),
+				shapeDrawer.filledRectangle((int) (SEVENLEFT * widthD), HEIGHT - (int) (COLORSUP * heightD),
 						(int) ((SEVENRIGHT - SEVENLEFT) * widthD), (int) ((COLORSDOWN - COLORSUP) * heightD));
 				break;
 
 			case 8:
-				shapeDrawer.filledRectangle((int) (EIGHTLEFT * widthD), (int) (COLORSUP * heightD),
+				shapeDrawer.filledRectangle((int) (EIGHTLEFT * widthD), HEIGHT - (int) (COLORSUP * heightD),
 						(int) ((EIGHTRIGHT - EIGHTLEFT) * widthD), (int) ((COLORSDOWN - COLORSUP) * heightD));
 				break;
 			}
@@ -1023,31 +1068,31 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 			shapeDrawer.setColor(brickColors[1]);
 
 			if (newSeed) {
-				shapeDrawer.filledRectangle((int) (NSEEDLEFT * widthD), (int) (NSEEDUP * heightD),
+				shapeDrawer.filledRectangle((int) (NSEEDLEFT * widthD), HEIGHT - (int) (NSEEDUP * heightD),
 						(int) ((NSEEDRIGHT - NSEEDLEFT) * widthD), (int) ((NSEEDDOWN - NSEEDUP) * heightD));
 			}
 
 			if (bFlagImage != null) // Draw the flag if it exists, but do not crash elsewhere.
-				batch.draw(bFlagImage, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+				batch.draw(bFlagImage, 0, 0, WIDTH, HEIGHT);
 
 		}
 
 		if (!inMenu && !win) {
 			// titleFont
 			glyphLayout.setText(font, "   Score: " + score, scoreBG,
-					Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16 + 2, Align.center, false);
+					WIDTH / 4 + WIDTH / 16 + 2, Align.center, false);
 
 			// tempGraphics2D.setFont(titleFont);
 			// tempGraphics2D.setColor(scoreBG);
-			// tempGraphics2D.drawString(" Score: " + score, Gdx.graphics.getWidth() / 4 +
-			// Gdx.graphics.getWidth() / 16 + 2, Gdx.graphics.getHeight() / 16 + 2);
+			// tempGraphics2D.drawString(" Score: " + score, width / 4 +
+			// width / 16 + 2, HEIGHT / 16 + 2);
 
 			glyphLayout.setText(font, "   Score: " + score, scoreFG,
-					Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16, Align.center, false);
+					WIDTH / 4 + WIDTH / 16, Align.center, false);
 			// tempGraphics2D.setFont(titleFont);
 			// tempGraphics2D.setColor(scoreFG);
-			// tempGraphics2D.drawString(" Score: " + score, Gdx.graphics.getWidth() / 4 +
-			// Gdx.graphics.getWidth() / 16, Gdx.graphics.getHeight() / 16);
+			// tempGraphics2D.drawString(" Score: " + score, width / 4 +
+			// width / 16, HEIGHT / 16);
 
 			batch.setShader(fontShader);
 			font.draw(batch, "Hello smooth world!", 10, 10);
@@ -1056,59 +1101,61 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 
 		if (win) {
 			// startingFont
-			glyphLayout.setText(font, "Game over", scoreFG, Gdx.graphics.getWidth() / 2 - Gdx.graphics.getWidth() / 4,
+			glyphLayout.setText(font, "Game over", scoreFG, WIDTH / 2 - WIDTH / 4,
 					Align.center, false);
 //				tempGraphics2D.setColor(scoreFG);
 //				tempGraphics2D.setFont(startingFont);
-//				tempGraphics2D.drawString("Game over", Gdx.graphics.getWidth() / 2 - Gdx.graphics.getWidth() / 4, Gdx.graphics.getHeight() / 2 - Gdx.graphics.getHeight() / 6);
+//				tempGraphics2D.drawString("Game over", width / 2 - width / 4, HEIGHT / 2 - HEIGHT / 6);
 
 			// titleFont
 			glyphLayout.setText(font, "   Score: " + score, scoreBG,
-					Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16 + 2, Align.center, false);
+					WIDTH / 4 + WIDTH / 16 + 2, Align.center, false);
 			glyphLayout.setText(font, "   Position: " + currentPosition, scoreBG,
-					Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16 + 2, Align.center, false);
+					WIDTH / 4 + WIDTH / 16 + 2, Align.center, false);
 
 //				tempGraphics2D.setFont(titleFont);
 //				tempGraphics2D.setColor(scoreBG);
-//				tempGraphics2D.drawString("   Score: " + score, Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16 + 2, Gdx.graphics.getHeight() / 2 - Gdx.graphics.getHeight() / 3 + 2);
-//				tempGraphics2D.drawString("   Position: " + currentPosition, Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16 + 2, Gdx.graphics.getHeight() / 2 + 2);
+//				tempGraphics2D.drawString("   Score: " + score, width / 4 + width / 16 + 2, HEIGHT / 2 - HEIGHT / 3 + 2);
+//				tempGraphics2D.drawString("   Position: " + currentPosition, width / 4 + width / 16 + 2, HEIGHT / 2 + 2);
 
 			glyphLayout.setText(font, "   Score: " + score, scoreFG,
-					Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16, Align.center, false);
+					WIDTH / 4 + WIDTH / 16, Align.center, false);
 			glyphLayout.setText(font, "   Position: " + currentPosition, scoreFG,
-					Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16, Align.center, false);
+					WIDTH / 4 + WIDTH / 16, Align.center, false);
 
 //				tempGraphics2D.setFont(titleFont);
 //				tempGraphics2D.setColor(scoreFG);
-//				tempGraphics2D.drawString("   Score: " + score, Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16, Gdx.graphics.getHeight() / 2 - Gdx.graphics.getHeight() / 3);
-//				tempGraphics2D.drawString("   Position: " + currentPosition, Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16, Gdx.graphics.getHeight() / 2);
+//				tempGraphics2D.drawString("   Score: " + score, width / 4 + width / 16, HEIGHT / 2 - HEIGHT / 3);
+//				tempGraphics2D.drawString("   Position: " + currentPosition, width / 4 + width / 16, HEIGHT / 2);
 
 			glyphLayout.setText(font, "Enter your name", scoreFG,
-					Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16 + 2, Align.center, false);
+					WIDTH / 4 + WIDTH / 16 + 2, Align.center, false);
 			glyphLayout.setText(font, "- " + playerName + " -", scoreFG,
-					Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16 + 2, Align.center, false);
+					WIDTH / 4 + WIDTH / 16 + 2, Align.center, false);
 //				tempGraphics2D.setColor(scoreFG);
-//				tempGraphics2D.drawString("Enter your name", Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16 + 2, Gdx.graphics.getHeight() / 2 + Gdx.graphics.getHeight() / 3);
-//				tempGraphics2D.drawString("- " + playerName + " -", Gdx.graphics.getWidth() / 4 + Gdx.graphics.getWidth() / 16 + 2, Gdx.graphics.getHeight() / 2 + Gdx.graphics.getHeight() / 2 - Gdx.graphics.getHeight() / 12);
+//				tempGraphics2D.drawString("Enter your name", width / 4 + width / 16 + 2, HEIGHT / 2 + HEIGHT / 3);
+//				tempGraphics2D.drawString("- " + playerName + " -", width / 4 + width / 16 + 2, HEIGHT / 2 + HEIGHT / 2 - HEIGHT / 12);
 		}
 		if (loading) {
 			shapeDrawer.setColor(greyTans);
 
-			shapeDrawer.filledRectangle(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+			shapeDrawer.filledRectangle(0, 0, WIDTH, HEIGHT);
 
-			glyphLayout.setText(font, "Loading...", scoreFG, Gdx.graphics.getWidth() / 2 - Gdx.graphics.getWidth() / 4,
+			glyphLayout.setText(font, "Loading...", scoreFG, WIDTH / 2 - WIDTH / 4,
 					Align.center, false);
 //				tempGraphics2D.setColor(scoreFG);
 //				tempGraphics2D.setFont(startingFont);
-//				tempGraphics2D.drawString("Loading...", Gdx.graphics.getWidth() / 2 - Gdx.graphics.getWidth() / 4, Gdx.graphics.getHeight() / 2 - Gdx.graphics.getHeight() / 6);
+//				tempGraphics2D.drawString("Loading...", width / 2 - width / 4, HEIGHT / 2 - HEIGHT / 6);
 		}
+		shapeDrawer.setColor(Color.WHITE);
+		shapeDrawer.filledCircle(posOfMouse.x, HEIGHT - posOfMouse.y, 2);
 	}
 
 	public void initGraphics()
 	{
 		loading = true;
 		
-        stage = new Stage(new ScreenViewport());
+        stage = new Stage(viewport);
         Gdx.input.setInputProcessor(stage);
         
 		try
@@ -1141,22 +1188,6 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 		{
 			myLog.add2Log(1, "Earth image not found ");
 			System.err.println("Earth image not found ");
-			//System.exit(1);
-		}
-
-		try
-		{
-			bAnimImage = new Texture(Gdx.files.internal("Gfx/TestBlocs.png"));
-		}
-		catch (Exception e)
-		{
-			myLog.add2Log(1, e);
-			System.err.println("Anim image not found ");
-		}
-		if (bAnimImage == null)
-		{
-			myLog.add2Log(1, "Anim image not found ");
-			System.err.println("Anim image not found ");
 			//System.exit(1);
 		}
 
@@ -1214,16 +1245,14 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 		java.util.Random myRandomGen = new java.util.Random();
 		int nbBackgroundImage = myRandomGen.nextInt(allBackgroundsFiles.length);
 
-		FileHandle nextBackground = allBackgroundsFiles[nbBackgroundImage];
-
 		try
 		{
-			bSatImage = new Texture(nextBackground);
+			bSatImage = new Texture(Gdx.files.internal("Gfx/Backgrounds/"+allBackgroundsFiles[nbBackgroundImage]) );
 		}
 		catch (Exception e)
 		{
 			myLog.add2Log(1, e);
-			System.err.println("Exception: backgrounds/BackImage" + nbBackgroundImage + ".jpg image not recovered ");
+			System.err.println("Exception: Backgrounds/" + allBackgroundsFiles[nbBackgroundImage] + " image not recovered ");
 		}
 
 		//        	java.util.Random myRandomGen= new java.util.Random();
@@ -1273,8 +1302,9 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 	@Override
 	public void create () {
 		camera = new OrthographicCamera();
-		camera.setToOrtho(false, 1280, 720);
-		  
+		camera.setToOrtho(false, WIDTH, HEIGHT);
+		viewport = new StretchViewport(WIDTH, HEIGHT, camera);
+		
 		//used=true;
 
 		myLog.add2Log(1, "Initialised");
@@ -1284,6 +1314,8 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 		initGraphics();		
 		
 		initSounds();
+		
+		Gdx.input.setInputProcessor(this);
 	}
 
 	@Override
@@ -1293,8 +1325,12 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 		camera.update();
 		batch.setProjectionMatrix(camera.combined);
 		
+		batch.enableBlending();
 		batch.begin();
+		
+		batch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA );
 		postRender();
+		
 		batch.end();
 		
 		if (Gdx.input.isButtonJustPressed(Buttons.LEFT)) {
@@ -1316,7 +1352,7 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 		bigSnd.dispose();
 		endSnd.dispose();
 	}
-
+	
 	@Override
 	public boolean keyDown(int keycode) {
 		// TODO Auto-generated method stub
@@ -1353,9 +1389,15 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 		return false;
 	}
 
+	Vector3 posOfMouse = new Vector3();
 	@Override
 	public boolean mouseMoved(int screenX, int screenY) {
-		// TODO Auto-generated method stub
+		posOfMouse = camera.unproject(tp.set(screenX, screenY, 0));
+		posOfMouse.y = HEIGHT - posOfMouse.y;
+		
+		blocHovered.setX((int )(((float )posOfMouse.x) / stepBlocX));
+		blocHovered.setY((int )(((float )posOfMouse.y) / stepBlocY));
+			
 		return false;
 	}
 
