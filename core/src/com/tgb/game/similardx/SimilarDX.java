@@ -957,7 +957,7 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 		for (int x = 0; x < nbBlocX; x++) {
 			for (int y = 0; y < nbBlocY; y++) {
 				if (tabOfBlocs[x][y] != voidBloc) {
-					batch.draw(spriteBlock[tabOfBlocs[x][y]], xBloc, HEIGHT - yBloc, stepBlocX, stepBlocY);
+					batch.draw(spriteBlock[tabOfBlocs[x][y]], xBloc, HEIGHT - yBloc - stepBlocY, stepBlocX, stepBlocY);
 				}
 				yBloc += stepBlocY;
 			}
@@ -965,10 +965,10 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 			xBloc += stepBlocX;
 		}
 
-		if (tabOfBlocs[blocHovered.getX()][blocHovered.getY()] != voidBloc)
+		if (!inMenu && tabOfBlocs[blocHovered.getX()][blocHovered.getY()] != voidBloc)
 		{
 			shapeDrawer.setColor(Color.WHITE);
-			shapeDrawer.filledRectangle((stepBlocX * blocHovered.getX()), HEIGHT - (stepBlocY * blocHovered.getY()), stepBlocX, stepBlocY);
+			shapeDrawer.filledRectangle((stepBlocX * blocHovered.getX()) + 2, HEIGHT - (stepBlocY * blocHovered.getY()) - stepBlocY + 2, stepBlocX - 4, stepBlocY - 4);
 		}
 		else
 		{
@@ -997,28 +997,28 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 
 			switch (sizeGrid) {
 			case 0:
-				shapeDrawer.filledRectangle((int) (VERYSMALLLEFT * widthD), HEIGHT - (int) (SIZEUP * heightD),
+				shapeDrawer.filledRectangle((int) (VERYSMALLLEFT * widthD), HEIGHT - (int) (SIZEUP * heightD) - (int) ((SIZEDOWN - SIZEUP) * heightD),
 						(int) ((VERYSMALLRIGHT - VERYSMALLLEFT) * widthD), (int) ((SIZEDOWN - SIZEUP) * heightD));
 				break;
 
 			case 1:
-				shapeDrawer.filledRectangle((int) (SMALLLEFT * widthD), HEIGHT - (int) (SIZEUP * heightD),
+				shapeDrawer.filledRectangle((int) (SMALLLEFT * widthD), HEIGHT - (int) (SIZEUP * heightD) - (int) ((SIZEDOWN - SIZEUP) * heightD),
 						(int) ((SMALLRIGHT - SMALLLEFT) * widthD),
 						(int) ((SIZEDOWN - SIZEUP) * heightD));
 				break;
 
 			case 2:
-				shapeDrawer.filledRectangle((int) (MEDIUMLEFT * widthD), HEIGHT - (int) (SIZEUP * heightD),
+				shapeDrawer.filledRectangle((int) (MEDIUMLEFT * widthD), HEIGHT - (int) (SIZEUP * heightD) - (int) ((SIZEDOWN - SIZEUP) * heightD),
 						(int) ((MEDIUMRIGHT - MEDIUMLEFT) * widthD), (int) ((SIZEDOWN - SIZEUP) * heightD));
 				break;
 
 			case 3:
-				shapeDrawer.filledRectangle((int) (BIGLEFT * widthD), HEIGHT - (int) (SIZEUP * heightD),
+				shapeDrawer.filledRectangle((int) (BIGLEFT * widthD), HEIGHT - (int) (SIZEUP * heightD) - (int) ((SIZEDOWN - SIZEUP) * heightD),
 						(int) ((BIGRIGHT - BIGLEFT) * widthD), (int) ((SIZEDOWN - SIZEUP) * heightD));
 				break;
 
 			case 4:
-				shapeDrawer.filledRectangle((int) (VERYBIGLEFT * widthD), HEIGHT - (int) (SIZEUP * heightD),
+				shapeDrawer.filledRectangle((int) (VERYBIGLEFT * widthD), HEIGHT - (int) (SIZEUP * heightD) - (int) ((SIZEDOWN - SIZEUP) * heightD),
 						(int) ((VERYBIGRIGHT - VERYBIGLEFT) * widthD), (int) ((SIZEDOWN - SIZEUP) * heightD));
 				break;
 
@@ -1028,39 +1028,39 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 
 			switch (nbColors) {
 			case 2:
-				shapeDrawer.filledRectangle((int) (TWOLEFT * widthD), HEIGHT - (int) (COLORSUP * heightD),
+				shapeDrawer.filledRectangle((int) (TWOLEFT * widthD), HEIGHT - (int) (COLORSUP * heightD) - (int)((COLORSDOWN - COLORSUP) * heightD),
 						(int) ((TWORIGHT - TWOLEFT) * widthD), (int) ((COLORSDOWN - COLORSUP) * heightD));
 				break;
 
 			case 3:
-				shapeDrawer.filledRectangle((int) (THREELEFT * widthD), HEIGHT - (int) (COLORSUP * heightD),
+				shapeDrawer.filledRectangle((int) (THREELEFT * widthD), HEIGHT - (int) (COLORSUP * heightD) - (int)((COLORSDOWN - COLORSUP) * heightD),
 						(int) ((THREERIGHT - THREELEFT) * widthD),
 						(int) ((COLORSDOWN - COLORSUP) * heightD));
 				break;
 
 			case 4:
-				shapeDrawer.filledRectangle((int) (FOURLEFT * widthD), HEIGHT - (int) (COLORSUP * heightD),
+				shapeDrawer.filledRectangle((int) (FOURLEFT * widthD), HEIGHT - (int) (COLORSUP * heightD) - (int)((COLORSDOWN - COLORSUP) * heightD),
 						(int) ((FOURRIGHT - FOURLEFT) * widthD), (int) ((COLORSDOWN - COLORSUP) * heightD));
 				break;
 
 			case 5:
-				shapeDrawer.filledRectangle((int) (FIVELEFT * widthD), HEIGHT - (int) (COLORSUP * heightD),
+				shapeDrawer.filledRectangle((int) (FIVELEFT * widthD), HEIGHT - (int) (COLORSUP * heightD) - (int)((COLORSDOWN - COLORSUP) * heightD),
 						(int) ((FIVERIGHT - FIVELEFT) * widthD),
 						(int) ((COLORSDOWN - COLORSUP) * heightD));
 				break;
 
 			case 6:
-				shapeDrawer.filledRectangle((int) (SIXLEFT * widthD), HEIGHT - (int) (COLORSUP * heightD),
+				shapeDrawer.filledRectangle((int) (SIXLEFT * widthD), HEIGHT - (int) (COLORSUP * heightD) - (int)((COLORSDOWN - COLORSUP) * heightD),
 						(int) ((SIXRIGHT - SIXLEFT) * widthD), (int) ((COLORSDOWN - COLORSUP) * heightD));
 				break;
 
 			case 7:
-				shapeDrawer.filledRectangle((int) (SEVENLEFT * widthD), HEIGHT - (int) (COLORSUP * heightD),
+				shapeDrawer.filledRectangle((int) (SEVENLEFT * widthD), HEIGHT - (int) (COLORSUP * heightD) - (int)((COLORSDOWN - COLORSUP) * heightD),
 						(int) ((SEVENRIGHT - SEVENLEFT) * widthD), (int) ((COLORSDOWN - COLORSUP) * heightD));
 				break;
 
 			case 8:
-				shapeDrawer.filledRectangle((int) (EIGHTLEFT * widthD), HEIGHT - (int) (COLORSUP * heightD),
+				shapeDrawer.filledRectangle((int) (EIGHTLEFT * widthD), HEIGHT - (int) (COLORSUP * heightD) - (int)((COLORSDOWN - COLORSUP) * heightD),
 						(int) ((EIGHTRIGHT - EIGHTLEFT) * widthD), (int) ((COLORSDOWN - COLORSUP) * heightD));
 				break;
 			}
@@ -1068,7 +1068,7 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 			shapeDrawer.setColor(brickColors[1]);
 
 			if (newSeed) {
-				shapeDrawer.filledRectangle((int) (NSEEDLEFT * widthD), HEIGHT - (int) (NSEEDUP * heightD),
+				shapeDrawer.filledRectangle((int) (NSEEDLEFT * widthD), HEIGHT - (int) (NSEEDUP * heightD) - (int) ((NSEEDDOWN - NSEEDUP) * heightD),
 						(int) ((NSEEDRIGHT - NSEEDLEFT) * widthD), (int) ((NSEEDDOWN - NSEEDUP) * heightD));
 			}
 
@@ -1078,75 +1078,65 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 		}
 
 		if (!inMenu && !win) {
+			batch.setShader(fontShader);
 			// titleFont
-			glyphLayout.setText(font, "   Score: " + score, scoreBG,
-					WIDTH / 4 + WIDTH / 16 + 2, Align.center, false);
+			font.getData().setScale(0.8f);
+			font.setColor(scoreBG);
+			font.draw(batch, "   Score: " + score, WIDTH / 4 + WIDTH / 16 + 2, HEIGHT - HEIGHT / 16 - 2, WIDTH / 4 + WIDTH / 16 + 2, Align.center, false);
 
-			// tempGraphics2D.setFont(titleFont);
-			// tempGraphics2D.setColor(scoreBG);
-			// tempGraphics2D.drawString(" Score: " + score, width / 4 +
-			// width / 16 + 2, HEIGHT / 16 + 2);
+			font.getData().setScale(0.8f);
+			font.setColor(scoreFG);
+			font.draw(batch, "   Score: " + score, WIDTH / 4 + WIDTH / 16, HEIGHT - HEIGHT / 16, WIDTH / 4 + WIDTH / 16 + 2, Align.center, false);
 
 			glyphLayout.setText(font, "   Score: " + score, scoreFG,
 					WIDTH / 4 + WIDTH / 16, Align.center, false);
-			// tempGraphics2D.setFont(titleFont);
-			// tempGraphics2D.setColor(scoreFG);
-			// tempGraphics2D.drawString(" Score: " + score, width / 4 +
-			// width / 16, HEIGHT / 16);
 
-			batch.setShader(fontShader);
-			font.draw(batch, "Hello smooth world!", 10, 10);
 			batch.setShader(null);
 		}
 
 		if (win) {
+			batch.setShader(fontShader);
+			
 			// startingFont
-			glyphLayout.setText(font, "Game over", scoreFG, WIDTH / 2 - WIDTH / 4,
-					Align.center, false);
-//				tempGraphics2D.setColor(scoreFG);
-//				tempGraphics2D.setFont(startingFont);
-//				tempGraphics2D.drawString("Game over", width / 2 - width / 4, HEIGHT / 2 - HEIGHT / 6);
-
+			font.getData().setScale(1.8f);
+			font.setColor(scoreFG);
+			font.draw(batch, "Game over", WIDTH / 2 - WIDTH / 4, HEIGHT - (HEIGHT / 2 - HEIGHT / 6), WIDTH/2, Align.center, false);
+			
 			// titleFont
-			glyphLayout.setText(font, "   Score: " + score, scoreBG,
-					WIDTH / 4 + WIDTH / 16 + 2, Align.center, false);
-			glyphLayout.setText(font, "   Position: " + currentPosition, scoreBG,
-					WIDTH / 4 + WIDTH / 16 + 2, Align.center, false);
+			font.getData().setScale(0.8f);
+			font.setColor(scoreBG);
+			font.draw(batch, "   Score: " + score, WIDTH / 4 + WIDTH / 16 + 2, HEIGHT - (HEIGHT / 2 - HEIGHT / 3 + 2), WIDTH / 4 + WIDTH / 16 + 2, Align.center, false);
+			font.draw(batch, "   Position: " + currentPosition, WIDTH / 4 + WIDTH / 16 + 2, HEIGHT - (HEIGHT / 2 + 2), WIDTH / 4 + WIDTH / 16 + 2, Align.center, false);
 
-//				tempGraphics2D.setFont(titleFont);
-//				tempGraphics2D.setColor(scoreBG);
-//				tempGraphics2D.drawString("   Score: " + score, width / 4 + width / 16 + 2, HEIGHT / 2 - HEIGHT / 3 + 2);
-//				tempGraphics2D.drawString("   Position: " + currentPosition, width / 4 + width / 16 + 2, HEIGHT / 2 + 2);
+			font.setColor(scoreFG);
+			font.draw(batch, "   Score: " + score, WIDTH / 4 + WIDTH / 16 + 2, HEIGHT - (HEIGHT / 2 - HEIGHT / 3), WIDTH / 4 + WIDTH / 16 + 2, Align.center, false);
+			font.draw(batch, "   Position: " + currentPosition, WIDTH / 4 + WIDTH / 16 + 2, HEIGHT - (HEIGHT / 2), WIDTH / 4 + WIDTH / 16 + 2, Align.center, false);
+			
+			font.draw(batch, "Enter your name", WIDTH / 4 + WIDTH / 16 + 2, HEIGHT - (HEIGHT / 2 + HEIGHT / 3), WIDTH / 4 + WIDTH / 16 + 2, Align.center, false);
+			font.draw(batch, "- " + playerName + " -", WIDTH / 4 + WIDTH / 16 + 2, HEIGHT - (HEIGHT / 2 + 2), WIDTH / 4 + WIDTH / 16 + 2, Align.center, false);
 
-			glyphLayout.setText(font, "   Score: " + score, scoreFG,
-					WIDTH / 4 + WIDTH / 16, Align.center, false);
-			glyphLayout.setText(font, "   Position: " + currentPosition, scoreFG,
-					WIDTH / 4 + WIDTH / 16, Align.center, false);
-
-//				tempGraphics2D.setFont(titleFont);
-//				tempGraphics2D.setColor(scoreFG);
-//				tempGraphics2D.drawString("   Score: " + score, width / 4 + width / 16, HEIGHT / 2 - HEIGHT / 3);
-//				tempGraphics2D.drawString("   Position: " + currentPosition, width / 4 + width / 16, HEIGHT / 2);
-
-			glyphLayout.setText(font, "Enter your name", scoreFG,
-					WIDTH / 4 + WIDTH / 16 + 2, Align.center, false);
-			glyphLayout.setText(font, "- " + playerName + " -", scoreFG,
-					WIDTH / 4 + WIDTH / 16 + 2, Align.center, false);
-//				tempGraphics2D.setColor(scoreFG);
-//				tempGraphics2D.drawString("Enter your name", width / 4 + width / 16 + 2, HEIGHT / 2 + HEIGHT / 3);
-//				tempGraphics2D.drawString("- " + playerName + " -", width / 4 + width / 16 + 2, HEIGHT / 2 + HEIGHT / 2 - HEIGHT / 12);
+			batch.setShader(null);
 		}
 		if (loading) {
 			shapeDrawer.setColor(greyTans);
 
 			shapeDrawer.filledRectangle(0, 0, WIDTH, HEIGHT);
 
-			glyphLayout.setText(font, "Loading...", scoreFG, WIDTH / 2 - WIDTH / 4,
-					Align.center, false);
-//				tempGraphics2D.setColor(scoreFG);
-//				tempGraphics2D.setFont(startingFont);
-//				tempGraphics2D.drawString("Loading...", width / 2 - width / 4, HEIGHT / 2 - HEIGHT / 6);
+			batch.setShader(fontShader);
+			font.setColor(scoreFG);
+			font.draw(batch, "Loading...", WIDTH / 2 - WIDTH / 4, HEIGHT - (HEIGHT / 2 - HEIGHT / 6), WIDTH / 4 + WIDTH / 16 + 2, Align.center, false);
+			
+			batch.setShader(null);
 		}
+		
+		/*
+		// Only for debug!
+		batch.setShader(fontShader);
+		font.setColor(scoreFG);
+		font.draw(batch, "Block selected "+blocHovered.x + ", " + blocHovered.y + " vs mouse pos " + posOfMouse.x +", "+posOfMouse.y, WIDTH / 2 - WIDTH / 4, HEIGHT - (HEIGHT / 2 - HEIGHT / 6), WIDTH / 4 + WIDTH / 16 + 2, Align.center, false);
+		*/
+		batch.setShader(null);
+		
 		shapeDrawer.setColor(Color.WHITE);
 		shapeDrawer.filledCircle(posOfMouse.x, HEIGHT - posOfMouse.y, 2);
 	}
