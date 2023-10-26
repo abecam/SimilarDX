@@ -1,9 +1,5 @@
 package com.tgb.game.similardx;
 
-import java.io.File;
-import java.io.IOException;
-import java.text.DateFormat;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.Vector;
 
@@ -14,7 +10,6 @@ import com.badlogic.gdx.Input.Buttons;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
-import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -26,18 +21,16 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
 
-import se.hgo.mmroutils.LogManager;
+//import se.hgo.mmroutils.LogManager;
 import space.earlygrey.shapedrawer.ShapeDrawer;
 
 public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
@@ -48,7 +41,7 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 	private OrthographicCamera camera;
 	private StretchViewport viewport;
 	
-	LogManager myLog;
+	//LogManager myLog;
 
 	static final int majorVersion = 3;
 	static final int minorVersion = 0;
@@ -529,42 +522,66 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 			}
 		}
 	}
-	
-	DateFormat myDateFormat;
 
-	public String getFormattedTime(long timeToFormat)
-	{
-		//myDateFormat = new SimpleDateFormat("'Time elapsed' yyyy 'years ' MM'months, 'dd' days, 'H'h'm'm's's'");
+    
+    public int initLog(String Name)
+    {
+        System.out.println("Log instance: "+Name);
+        
+        return 0;
+    }
 
-		//GregorianCalendar c=new GregorianCalendar();
-		//c.setTime(new Date(timeToFormat));
-		//String output= myDateFormat.format(new Date(new Date().getTime() - timeToFormat));
-		//String output= String.format("Time elapsed: %tT", c);
-		long secs, mins, hours, days, months, years;
+    public int add2Log(String line)
+    {
+        System.out.println("log: "+line);
+        
+        return 0;
+    }
+   
+    int levelGen=6; // All
+    int levelExc=6; // All too
+	private SimilarDX myLog;
+    
+    /**
+     * @param levelExc The levelExc to set.
+     */
+    public void setLevelExc(int levelExc)
+    {
+        this.levelExc = levelExc;
+    }
 
-		//lastTime= timeToFormat;
+    /**
+     * @param levelGen The levelGen to set.
+     */
+    public void setLevelGen(int levelGen)
+    {
+        this.levelGen = levelGen;
+    }
 
-		long timeDone = new Date().getTime() - timeToFormat;
-		secs = timeDone / 1000;
-		mins = secs / 60;
-		hours = mins / 60;
-		days = hours / 24;
-		months = days / 31;
-		years = months / 12;
-		secs -= mins * 60;
-		mins -= hours * 60;
-		hours -= days * 24;
-		days -= months * 31;
-		months -= years * 12;
-
-		String output = String.format("Time elapsed %d years, %d months, %d days, %dh%dm%ds", years, months, days, hours, mins, secs);
-
-		return output;
-	}
-
+    public int add2Log(int level,String line)
+    {
+        if (level<levelGen)
+            return add2Log(line);
+        else
+            return 0; // Ok but nothing
+    }
+    
+    public int add2Log(int level,Exception eToPr)
+    {
+        if (level<levelExc)
+            return add2Log(eToPr);
+        else
+            return 0; // Ok but nothing
+    }
+    public int add2Log(Exception eToPr)
+    {
+    	eToPr.printStackTrace();
+        return 0;
+    }
+    
 	public SimilarDX()
 	{
-		myLog = new se.hgo.mmroutils.LogManager();
+		myLog = this; // new se.hgo.mmroutils.LogManager();
 		//myLog = new mmroutils.LogManager();
 		myLog.initLog("Similar - Version " + majorVersion + "." + minorVersion);
 		myLog.setLevelExc(4); // All exception printed
@@ -917,27 +934,6 @@ public class SimilarDX extends ApplicationAdapter  implements InputProcessor {
 	Color brickColors[];
 	private Sprite[] spriteBlock = new Sprite[10];
 	private Stage stage;
-
-	public String getMyFormattedTime(long timeToFormat)
-	{
-		long secs, mins, hours, days, months, years;
-
-		long timeDone = new Date().getTime() - timeToFormat;
-		secs = timeDone / 1000;
-		mins = secs / 60;
-		hours = mins / 60;
-		days = hours / 24;
-		months = days / 31;
-		years = months / 12;
-		secs -= mins * 60;
-		mins -= hours * 60;
-		hours -= days * 24;
-		days -= months * 31;
-		months -= years * 12;
-		String output = String.format("Time elapsed %d years, %d months, %d days, %dh%dm%ds", years, months, days, hours, mins, secs);
-
-		return output;
-	}
 
 	public void postRender() {
 		

@@ -29,11 +29,6 @@
 
 package se.hgo.mmroutils;
 
-import java.io.RandomAccessFile;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-
 /**
  *  With the same interface as the LogManager, this class does NOTHING !:)
  *  So you can replace your use of the LogManager by this one, so you don't use and generate any file and output!
